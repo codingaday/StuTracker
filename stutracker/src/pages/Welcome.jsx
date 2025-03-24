@@ -10,7 +10,7 @@ const Welcome = () => {
       <main className="flex-1 flex flex-col md:flex-row items-center justify-center text-center md:text-left px-4 py-8">
         <div className="mb-6 md:mb-0 md:mr-8">
           <img
-            src="../images/home.png"
+            src="/images/home.png"
             alt="Classroom"
             className="rounded-full w-32 h-32 md:w-48 md:h-48 mx-auto md:mx-0"
           />

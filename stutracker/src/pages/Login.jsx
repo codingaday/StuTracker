@@ -36,7 +36,7 @@ const Login = () => {
         </h1>
         <div className="mb-6">
           <img
-            src="https://via.placeholder.com/150"
+            src="/images/login.png"
             alt="Classroom"
             className="rounded-full w-32 h-32 md:w-48 md:h-48 mx-auto"
           />
