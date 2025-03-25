@@ -6,13 +6,31 @@ const ProgressBar = ({ subject, percentage }) => {
   const chartInstanceRef = useRef(null);
 
   useEffect(() => {
+    // Validate inputs
+    if (
+      !subject ||
+      typeof percentage !== "number" ||
+      percentage < 0 ||
+      percentage > 100
+    ) {
+      console.error("Invalid ProgressBar props:", { subject, percentage });
+      return;
+    }
+
     if (chartRef.current) {
-      // Destroy existing chart if it exists
+      // Destroy previous chart instance if it exists
       if (chartInstanceRef.current) {
         chartInstanceRef.current.destroy();
       }
 
+      // Get canvas context
       const ctx = chartRef.current.getContext("2d");
+      if (!ctx) {
+        console.error("Failed to get canvas context for ProgressBar");
+        return;
+      }
+
+      // Create new chart
       chartInstanceRef.current = new Chart(ctx, {
         type: "bar",
         data: {
@@ -21,25 +39,31 @@ const ProgressBar = ({ subject, percentage }) => {
             {
               label: "Progress",
               data: [percentage],
-              backgroundColor: "var(--accent)",
-              borderColor: "var(--accent)",
+              backgroundColor: "rgba(255, 87, 51, 0.6)", // --accent color
+              borderColor: "rgba(255, 87, 51, 1)",
               borderWidth: 1,
             },
           ],
         },
         options: {
-          indexAxis: "y",
+          indexAxis: "y", // Horizontal bar
           scales: {
             x: {
               beginAtZero: true,
               max: 100,
               ticks: {
-                color: "var(--text-primary)",
+                color: "white",
+              },
+              grid: {
+                color: "rgba(255, 255, 255, 0.1)",
               },
             },
             y: {
               ticks: {
-                color: "var(--text-primary)",
+                color: "white",
+              },
+              grid: {
+                display: false,
               },
             },
           },
@@ -52,6 +76,7 @@ const ProgressBar = ({ subject, percentage }) => {
       });
     }
 
+    // Cleanup on unmount
     return () => {
       if (chartInstanceRef.current) {
         chartInstanceRef.current.destroy();
@@ -60,11 +85,8 @@ const ProgressBar = ({ subject, percentage }) => {
   }, [subject, percentage]);
 
   return (
-    <div className="mb-4">
-      <h3 className="text-lg font-semibold mb-2">
-        {subject}: {percentage}%
-      </h3>
-      <canvas ref={chartRef} className="w-full h-8"></canvas>
+    <div className="mb-4 w-full">
+      <canvas ref={chartRef} style={{ height: "40px", width: "100%" }} />
     </div>
   );
 };

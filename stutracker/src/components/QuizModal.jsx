@@ -3,102 +3,100 @@ import axios from "axios";
 import Button from "./Button";
 
 const QuizModal = ({ isOpen, onClose }) => {
-  const [quiz, setQuiz] = useState(null);
+  const [question, setQuestion] = useState(null);
   const [selectedAnswer, setSelectedAnswer] = useState(null);
-  const [isSubmitted, setIsSubmitted] = useState(false);
+  const [isCorrect, setIsCorrect] = useState(null);
+  const [error, setError] = useState(null);
 
   useEffect(() => {
     if (isOpen) {
-      // Fetch a single quiz question from Open Trivia DB
+      // Reset state when modal opens
+      setQuestion(null);
+      setSelectedAnswer(null);
+      setIsCorrect(null);
+      setError(null);
+
+      // Fetch a random true/false question
       axios
-        .get("https://opentdb.com/api.php?amount=1&type=multiple")
+        .get("https://opentdb.com/api.php?amount=1&type=boolean")
         .then((response) => {
-          const question = response.data.results[0];
-          const answers = [
-            ...question.incorrect_answers,
-            question.correct_answer,
-          ].sort(() => Math.random() - 0.5); // Shuffle answers
-          setQuiz({
-            question: question.question,
-            answers,
-            correctAnswer: question.correct_answer,
+          const fetchedQuestion = response.data.results[0];
+          setQuestion({
+            text: fetchedQuestion.question,
+            correctAnswer: fetchedQuestion.correct_answer, // "True" or "False"
+            answers: ["True", "False"],
           });
         })
         .catch((error) => {
-          console.error("Error fetching quiz:", error);
+          console.error("Error fetching quiz question:", error);
+          setError("Failed to load quiz question. Using a fallback question.");
+          // Fallback question
+          setQuestion({
+            text: "Is the sky blue?",
+            correctAnswer: "True",
+            answers: ["True", "False"],
+          });
         });
     }
   }, [isOpen]);
 
-  const handleSubmit = () => {
-    setIsSubmitted(true);
+  const handleAnswer = (answer) => {
+    const isAnswerCorrect = answer === question.correctAnswer;
+    setSelectedAnswer(answer);
+    setIsCorrect(isAnswerCorrect);
   };
 
   const handleClose = () => {
-    setQuiz(null);
+    setQuestion(null);
     setSelectedAnswer(null);
-    setIsSubmitted(false);
+    setIsCorrect(null);
+    setError(null);
     onClose();
   };
 
-  if (!isOpen || !quiz) return null;
+  if (!isOpen) return null;
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div className="bg-[var(--primary-bg-start)] p-6 rounded-lg w-full max-w-md">
-        <h3 className="text-lg font-semibold mb-4">Daily Quiz Challenge</h3>
-        <p
-          className="mb-4"
-          dangerouslySetInnerHTML={{ __html: quiz.question }}
-        ></p>
-        <div className="space-y-2">
-          {quiz.answers.map((answer, index) => (
-            <button
-              key={index}
-              onClick={() => setSelectedAnswer(answer)}
-              disabled={isSubmitted}
-              className={`w-full p-2 rounded-lg text-left ${
-                selectedAnswer === answer
-                  ? "bg-[var(--accent)]"
-                  : "bg-[var(--primary-bg-end)]"
-              } ${
-                isSubmitted && answer === quiz.correctAnswer
-                  ? "border-2 border-green-500"
-                  : ""
-              } ${
-                isSubmitted &&
-                selectedAnswer === answer &&
-                answer !== quiz.correctAnswer
-                  ? "border-2 border-red-500"
-                  : ""
-              }`}
-            >
-              <span dangerouslySetInnerHTML={{ __html: answer }}></span>
-            </button>
-          ))}
-        </div>
-        {isSubmitted && (
-          <p className="mt-4">
-            {selectedAnswer === quiz.correctAnswer ? "Correct!" : "Incorrect!"}
-            {selectedAnswer !== quiz.correctAnswer && (
-              <span>
-                {" The correct answer is: "}
-                <span
-                  dangerouslySetInnerHTML={{ __html: quiz.correctAnswer }}
-                ></span>
-              </span>
+      <div className="bg-[var(--primary-bg-end)] p-6 rounded-lg max-w-md w-full">
+        <h2 className="text-xl font-bold mb-4">Quiz Challenge</h2>
+        {error && <p className="text-red-500 mb-4">{error}</p>}
+        {question ? (
+          <>
+            <p
+              className="mb-4"
+              dangerouslySetInnerHTML={{ __html: question.text }}
+            />
+            <div className="space-y-2">
+              {question.answers.map((answer, index) => (
+                <Button
+                  key={index}
+                  onClick={() => handleAnswer(answer)}
+                  className={`w-full ${
+                    selectedAnswer !== null
+                      ? answer === question.correctAnswer
+                        ? "bg-green-500"
+                        : "bg-red-500"
+                      : ""
+                  }`}
+                  disabled={selectedAnswer !== null}
+                >
+                  {answer}
+                </Button>
+              ))}
+            </div>
+            {selectedAnswer !== null && (
+              <p className="mt-4 text-center">
+                {isCorrect ? "Correct!" : "Incorrect!"}
+              </p>
             )}
-          </p>
+          </>
+        ) : (
+          <p>Loading...</p>
         )}
-        <div className="mt-6 flex justify-end gap-4">
-          {!isSubmitted ? (
-            <Button onClick={handleSubmit} disabled={!selectedAnswer}>
-              Submit
-            </Button>
-          ) : (
-            <Button onClick={handleClose}>Close</Button>
-          )}
-        </div>
+        <Button onClick={handleClose} className="mt-4 w-full">
+          Close
+        </Button>
       </div>
     </div>
   );
