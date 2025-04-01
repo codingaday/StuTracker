@@ -31,15 +31,15 @@ const Login = () => {
     <div className="min-h-screen flex flex-col">
       <Navbar />
       <main className="flex-1 flex flex-col items-center justify-center px-4 py-8 md:py-12">
-        <h1 className="text-2xl md:text-3xl font-bold mb-6">
-          Time to Reconnect!
-        </h1>
-        <div className="mb-6">
+        <div className="flex flex-col md:flex-row items-center justify-center text-center md:text-left px-4 py-8">
           <img
             src="/images/login.png"
             alt="Classroom"
-            className="rounded-full w-32 h-32 md:w-48 md:h-48 mx-auto"
+            className="rounded-full w-32 h-32 md:w-48 md:h-48 mx-auto md:mr-4 mb-4"
           />
+          <h1 className="text-2xl md:text-3xl font-bold mb-6 md:ml-4 mt-4">
+            Time to Reconnect!
+          </h1>
         </div>
         <form onSubmit={handleSubmit} className="w-full max-w-lg space-y-4">
           <div>
@@ -78,7 +78,7 @@ const Login = () => {
           </Button>
         </form>
         <p className="mt-4 text-[var(--text-secondary)] text-center">
-          Don’t have an account?{" "}
+          Don't have an account?{" "}
           <Link to="/signup" className="underline">
             SIGNUP!
           </Link>

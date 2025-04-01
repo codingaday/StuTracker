@@ -28,14 +28,7 @@ const QuizModal = ({ isOpen, onClose }) => {
           });
         })
         .catch((error) => {
-          console.error("Error fetching quiz question:", error);
-          setError("Failed to load quiz question. Using a fallback question.");
-          // Fallback question
-          setQuestion({
-            text: "Is the sky blue?",
-            correctAnswer: "True",
-            answers: ["True", "False"],
-          });
+          setError("Failed to load quiz question.");
         });
     }
   }, [isOpen]);

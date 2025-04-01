@@ -1,6 +1,6 @@
 import { createContext, useContext, useState, useEffect } from "react";
 
-// Create the Auth Context
+// Create the Auth Context(empty shared box for now, we will fill it later with user data and functions )
 const AuthContext = createContext();
 
 // Default mock data (used if localStorage is empty)
@@ -116,10 +116,6 @@ export const AuthProvider = ({ children }) => {
         const updatedCourses = event.newValue
           ? JSON.parse(event.newValue)
           : defaultMockCourses;
-        console.log(
-          "Detected localStorage change for mockCourses:",
-          updatedCourses
-        );
         setMockCourses(updatedCourses);
       }
     };
@@ -263,7 +259,6 @@ export const AuthProvider = ({ children }) => {
     };
     setMockCourses((prev) => {
       const updatedCourses = [...prev, newCourse];
-      console.log("Added new course:", updatedCourses);
       return updatedCourses;
     });
   };
@@ -272,7 +267,6 @@ export const AuthProvider = ({ children }) => {
   const deleteCourse = (courseId) => {
     setMockCourses((prev) => {
       const updatedCourses = prev.filter((course) => course.id !== courseId);
-      console.log("Deleted course, updated courses:", updatedCourses);
       return updatedCourses;
     });
   };
@@ -290,10 +284,6 @@ export const AuthProvider = ({ children }) => {
           ? { ...course, students: [...course.students, studentEmail] }
           : course
       );
-      console.log(
-        `Added student ${studentEmail} to course ${courseId}:`,
-        updatedCourses
-      );
       return updatedCourses;
     });
   };
@@ -310,10 +300,6 @@ export const AuthProvider = ({ children }) => {
               ),
             }
           : course
-      );
-      console.log(
-        `Removed student ${studentEmail} from course ${courseId}:`,
-        updatedCourses
       );
       return updatedCourses;
     });
@@ -339,7 +325,6 @@ export const AuthProvider = ({ children }) => {
     const studentCourses = mockCourses.filter((course) =>
       course.students.includes(studentEmail)
     );
-    console.log(`Courses for student ${studentEmail}:`, studentCourses);
     return studentCourses;
   };
 

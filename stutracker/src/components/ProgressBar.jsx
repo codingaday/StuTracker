@@ -13,7 +13,6 @@ const ProgressBar = ({ subject, percentage }) => {
       percentage < 0 ||
       percentage > 100
     ) {
-      console.error("Invalid ProgressBar props:", { subject, percentage });
       return;
     }
 
@@ -26,7 +25,6 @@ const ProgressBar = ({ subject, percentage }) => {
       // Get canvas context
       const ctx = chartRef.current.getContext("2d");
       if (!ctx) {
-        console.error("Failed to get canvas context for ProgressBar");
         return;
       }
 

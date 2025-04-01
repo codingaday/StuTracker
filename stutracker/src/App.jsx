@@ -6,33 +6,14 @@ import {
 } from "react-router-dom";
 import { AuthProvider, useAuth } from "./context/AuthContext";
 import Welcome from "./pages/Welcome";
+import About from "./pages/About";
+import Contact from "./pages/Contact";
+import Services from "./pages/Services";
+import NotFound from "./pages/NotFound";
 import Signup from "./pages/Signup";
 import Login from "./pages/Login";
-import StudentDashboard from "./pages/StudentDashboard";
-import TeacherDashboard from "./pages/TeacherDashboard";
-
-// Protected Route Component
-const ProtectedRoute = ({ children }) => {
-  const { user } = useAuth();
-  if (!user) {
-    return <Navigate to="/login" />;
-  }
-  return children;
-};
-
-// Dashboard Route Component
-const DashboardRoute = () => {
-  const { user } = useAuth();
-  if (!user) {
-    return <Navigate to="/login" />;
-  }
-  if (user.userType === "student") {
-    return <StudentDashboard />;
-  } else if (user.userType === "teacher") {
-    return <TeacherDashboard />;
-  }
-  return <Navigate to="/login" />;
-};
+import ProtectedRoute from "./components/ProtectedRoute";
+import DashboardRoute from "./components/DashboardRoute";
 
 const App = () => {
   return (
@@ -55,12 +36,12 @@ const App = () => {
           />
 
           {/* Placeholder Routes for Navigation Links */}
-          <Route path="/about" element={<div>About Page</div>} />
-          <Route path="/services" element={<div>Services Page</div>} />
-          <Route path="/contact" element={<div>Contact Page</div>} />
+          <Route path="/about" element={<About />} />
+          <Route path="/services" element={<Services />} />
+          <Route path="/contact" element={<Contact />} />
 
           {/* Fallback Route */}
-          <Route path="*" element={<Navigate to="/" />} />
+          <Route path="*" element={<NotFound />} />
         </Routes>
       </Router>
     </AuthProvider>
