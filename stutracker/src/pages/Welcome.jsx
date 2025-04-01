@@ -7,7 +7,7 @@ const Welcome = () => {
   return (
     <div className="min-h-screen flex flex-col">
       <Navbar />
-      <main className="flex-1 flex flex-col md:flex-row items-center justify-center text-center md:text-left px-4 py-8">
+      <main className="flex-1 flex flex-col md:flex-row items-center justify-center text-center md:text-left px-4 py-8 mt-16">
         <div className="mb-6 md:mb-0 md:mr-8">
           <img
             src="/images/home.png"

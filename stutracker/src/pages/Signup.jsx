@@ -185,7 +185,7 @@ const Signup = () => {
   return (
     <div className="min-h-screen flex flex-col">
       <Navbar />
-      <main className="flex-1 flex flex-col items-center justify-center px-4 py-8 md:py-12 bg-gradient-to-r from-[var(--primary-bg-start)] to-[var(--primary-bg-end)]">
+      <main className="flex-1 flex flex-col items-center justify-center px-4 py-8 md:py-12 bg-gradient-to-r from-[var(--primary-bg-start)] to-[var(--primary-bg-end)] mt-16">
         <div className="w-full max-w-md bg-[var(--primary-bg-end)] p-8 rounded-lg shadow-lg">
           <h1 className="text-3xl md:text-4xl font-bold text-[var(--text-primary)] text-center mb-6">
             Create an Account

@@ -89,7 +89,7 @@ const TeacherDashboard = () => {
   return (
     <div className="min-h-screen flex flex-col">
       <Navbar />
-      <main className="flex-1 px-4 py-8">
+      <main className="flex-1 px-4 py-8 mt-16">
         {/* Welcome Section */}
         <div className="text-center mb-12">
           <div className="mb-6">

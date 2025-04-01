@@ -6,7 +6,7 @@ const NotFound = () => {
   return (
     <div className="min-h-screen flex flex-col">
       <Navbar />
-
+      <main className="flex-1 mt-16"></main>
       {/* 404 Section */}
       <section className="flex-1 flex items-center justify-center py-16 bg-gradient-to-r from-[var(--primary-bg-start)] to-[var(--primary-bg-end)]">
         <div className="max-w-4xl mx-auto px-4 text-center">

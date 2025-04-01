@@ -32,7 +32,7 @@ const Login = () => {
   return (
     <div className="min-h-screen flex flex-col">
       <Navbar />
-      <main className="flex-1 flex flex-col items-center justify-center px-4 py-8 md:py-12">
+      <main className="flex-1 flex flex-col items-center justify-center px-4 py-8 md:py-12 mt-16">
         <div className="flex flex-col md:flex-row items-center justify-center text-center md:text-left px-4 py-8">
           <img
             src="/images/login.png"

@@ -16,7 +16,7 @@ const Navbar = () => {
   };
 
   return (
-    <nav className="bg-[var(--accent)] text-[var(--text-primary)] p-4 flex justify-between items-center">
+    <nav className="fixed top-0 left-0 w-full bg-[var(--accent)] text-[var(--text-primary)] p-4 flex justify-between items-center z-50 shadow-md">
       <Link to="/" className="text-xl font-bold">
         StuTracker
       </Link>
@@ -33,7 +33,7 @@ const Navbar = () => {
               strokeLinecap="round"
               strokeLinejoin="round"
               strokeWidth="2"
-              d="M4 6h16M4 12h16m-7 6h7"
+              d={isOpen ? "M6 18L18 6M6 6l12 12" : "M4 6h16M4 12h16M4 18h16"}
             />
           </svg>
         </button>
@@ -41,38 +41,53 @@ const Navbar = () => {
       <div
         className={`md:flex items-center gap-6 ${
           isOpen ? "block" : "hidden"
-        } md:block absolute md:static top-16 left-0 w-full md:w-auto bg-[var(--accent)] md:bg-transparent p-4 md:p-0`}
+        } md:block absolute md:static top-14 left-0 w-full md:w-auto bg-[var(--accent)] md:bg-transparent p-4 md:p-0 shadow-md md:shadow-none`}
       >
-        <Link to="/about" className="block md:inline-block py-2 md:py-0">
+        <Link
+          to="/about"
+          className="block md:inline-block py-2 md:py-0 hover:underline"
+        >
           About
         </Link>
-        <Link to="/services" className="block md:inline-block py-2 md:py-0">
+        <Link
+          to="/services"
+          className="block md:inline-block py-2 md:py-0 hover:underline"
+        >
           Services
         </Link>
-        <Link to="/contact" className="block md:inline-block py-2 md:py-0">
+        <Link
+          to="/contact"
+          className="block md:inline-block py-2 md:py-0 hover:underline"
+        >
           Contact
         </Link>
         {user ? (
           <>
             <Link
               to="/dashboard"
-              className="block md:inline-block py-2 md:py-0"
+              className="block md:inline-block py-2 md:py-0 hover:underline"
             >
               Dashboard
             </Link>
             <button
               onClick={handleLogout}
-              className="block md:inline-block py-2 md:py-0"
+              className="block md:inline-block py-2 md:py-0 hover:underline"
             >
               Logout
             </button>
           </>
         ) : location.pathname === "/login" ? (
-          <Link to="/signup" className="block md:inline-block py-2 md:py-0">
+          <Link
+            to="/signup"
+            className="block md:inline-block py-2 md:py-0 hover:underline"
+          >
             Signup
           </Link>
         ) : (
-          <Link to="/login" className="block md:inline-block py-2 md:py-0">
+          <Link
+            to="/login"
+            className="block md:inline-block py-2 md:py-0 hover:underline"
+          >
             Log in
           </Link>
         )}
