@@ -1,13 +1,13 @@
 import { createContext, useContext, useState, useEffect } from "react";
 
-// Create the Auth Context(empty shared box for now, we will fill it later with user data and functions )
+// Create the Auth Context
 const AuthContext = createContext();
 
 // Default mock data (used if localStorage is empty)
 const defaultMockUsers = [
   {
     email: "student@example.com",
-    password: "password123",
+    password: "@Password#123",
     firstName: "John",
     lastName: "Doe",
     userType: "student",
@@ -16,7 +16,7 @@ const defaultMockUsers = [
   },
   {
     email: "teacher@example.com",
-    password: "password123",
+    password: "@Password#123",
     firstName: "Jane",
     lastName: "Smith",
     userType: "teacher",
@@ -46,7 +46,6 @@ const defaultMockStreaks = {
   "teacher@example.com": 3,
 };
 
-// Default mock courses and student assignments
 const defaultMockCourses = [
   {
     id: "course1",
@@ -62,7 +61,6 @@ const defaultMockCourses = [
   },
 ];
 
-// Default mock goals for students
 const defaultMockGoals = {
   "student@example.com": [],
 };
@@ -382,6 +380,7 @@ export const AuthProvider = ({ children }) => {
         getStudentCourses,
         getTeacherForCourse,
         mockCourses,
+        mockUsers, // Added mockUsers to the context value
       }}
     >
       {children}

@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
+import { FaEye, FaEyeSlash } from "react-icons/fa";
 import Navbar from "../components/Navbar";
 import Footer from "../components/Footer";
 import Button from "../components/Button";
@@ -28,7 +29,9 @@ const Signup = () => {
     number: false,
     specialChar: false,
   });
-  const [showPasswordStrength, setShowPasswordStrength] = useState(false); // New state to control visibility
+  const [showPasswordStrength, setShowPasswordStrength] = useState(false);
+  const [showPassword, setShowPassword] = useState(false); // New state for password visibility
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false); // New state for confirm password visibility
   const { signup, mockUsers } = useAuth();
   const navigate = useNavigate();
 
@@ -133,10 +136,10 @@ const Signup = () => {
     // Update password strength and visibility if the password field is being edited
     if (name === "password") {
       if (value.length > 0) {
-        setShowPasswordStrength(true); // Show the indicator when typing starts
+        setShowPasswordStrength(true);
         checkPasswordStrength(value);
       } else {
-        setShowPasswordStrength(false); // Hide the indicator if the password field is cleared
+        setShowPasswordStrength(false);
         setPasswordStrength(0);
         setPasswordCriteria({
           length: false,
@@ -168,7 +171,8 @@ const Signup = () => {
         email: formData.email,
         password: formData.password,
       });
-      navigate("/dashboard");
+      // Navigate to dashboard upon successful signup
+      navigate("/dashboard", { replace: true }); // Using replace to prevent going back to signup page
     } catch (error) {
       setErrors({
         submit: "An error occurred during signup. Please try again.",
@@ -429,20 +433,39 @@ const Signup = () => {
               >
                 Password <span className="text-red-500">*</span>
               </label>
-              <input
-                type="password"
-                id="password"
-                name="password"
-                value={formData.password}
-                onChange={handleChange}
-                className={`w-full bg-[var(--accent)] text-[var(--text-primary)] p-3 rounded-full focus:outline-none focus:ring-2 ${
-                  errors.password
-                    ? "ring-red-500"
-                    : "focus:ring-[var(--accent-dark)]"
-                }`}
-                placeholder="Enter your password"
-                required
-              />
+              <div className="relative">
+                <input
+                  type={showPassword ? "text" : "password"} // Toggle between text and password
+                  id="password"
+                  name="password"
+                  value={formData.password}
+                  onChange={handleChange}
+                  className={`w-full bg-[var(--accent)] text-[var(--text-primary)] p-3 rounded-full focus:outline-none focus:ring-2 ${
+                    errors.password
+                      ? "ring-red-500"
+                      : "focus:ring-[var(--accent-dark)]"
+                  }`}
+                  placeholder="Enter your password"
+                  required
+                />
+                <div className="absolute inset-y-0 right-0 pr-3 flex items-center">
+                  <label className="flex items-center cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={showPassword}
+                      onChange={() => setShowPassword(!showPassword)}
+                      className="sr-only"
+                    />
+                    <span className="text-[var(--text-secondary)] text-sm flex items-center">
+                      <span className="mr-1">
+                        {showPassword ? <FaEye /> : <FaEyeSlash />}
+                      </span>
+
+                      {showPassword ? "Hide" : "Show"}
+                    </span>
+                  </label>
+                </div>
+              </div>
               {errors.password && (
                 <p className="text-red-500 text-sm mt-1">{errors.password}</p>
               )}
@@ -450,8 +473,6 @@ const Signup = () => {
               {/* Password Strength Indicator (conditionally rendered) */}
               {showPasswordStrength && (
                 <div className="mt-2 animate-fadeIn">
-                  {" "}
-                  {/* Added animation for smooth appearance */}
                   <div className="flex items-center justify-between mb-1">
                     <span className="text-[var(--text-secondary)] text-sm">
                       Password Strength
@@ -472,6 +493,7 @@ const Signup = () => {
                       style={{ width: `${passwordStrength}%` }}
                     />
                   </div>
+
                   {/* Password Criteria */}
                   <ul className="mt-2 text-sm text-[var(--text-secondary)] space-y-1">
                     <li className="flex items-center">
@@ -547,20 +569,40 @@ const Signup = () => {
               >
                 Confirm Password <span className="text-red-500">*</span>
               </label>
-              <input
-                type="password"
-                id="confirmPassword"
-                name="confirmPassword"
-                value={formData.confirmPassword}
-                onChange={handleChange}
-                className={`w-full bg-[var(--accent)] text-[var(--text-primary)] p-3 rounded-full focus:outline-none focus:ring-2 ${
-                  errors.confirmPassword
-                    ? "ring-red-500"
-                    : "focus:ring-[var(--accent-dark)]"
-                }`}
-                placeholder="Confirm your password"
-                required
-              />
+              <div className="relative">
+                <input
+                  type={showConfirmPassword ? "text" : "password"} // Toggle between text and password
+                  id="confirmPassword"
+                  name="confirmPassword"
+                  value={formData.confirmPassword}
+                  onChange={handleChange}
+                  className={`w-full bg-[var(--accent)] text-[var(--text-primary)] p-3 rounded-full focus:outline-none focus:ring-2 ${
+                    errors.confirmPassword
+                      ? "ring-red-500"
+                      : "focus:ring-[var(--accent-dark)]"
+                  }`}
+                  placeholder="Confirm your password"
+                  required
+                />
+                <div className="absolute inset-y-0 right-0 pr-3 flex items-center">
+                  <label className="flex items-center cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={showConfirmPassword}
+                      onChange={() =>
+                        setShowConfirmPassword(!showConfirmPassword)
+                      }
+                      className="sr-only"
+                    />
+                    <span className="text-[var(--text-secondary)] text-sm flex items-center">
+                      <span className="mr-1">
+                        {showConfirmPassword ? <FaEye /> : <FaEyeSlash />}
+                      </span>
+                      {showConfirmPassword ? "Hide" : "Show"}
+                    </span>
+                  </label>
+                </div>
+              </div>
               {errors.confirmPassword && (
                 <p className="text-red-500 text-sm mt-1">
                   {errors.confirmPassword}

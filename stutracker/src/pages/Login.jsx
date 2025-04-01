@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
+import { FaEye, FaEyeSlash } from "react-icons/fa";
 import Navbar from "../components/Navbar";
 import Footer from "../components/Footer";
 import Button from "../components/Button";
@@ -10,6 +11,7 @@ const Login = () => {
     email: "",
     password: "",
   });
+  const [showPassword, setShowPassword] = useState(false); // New state for password visibility
   const { login } = useAuth();
   const navigate = useNavigate();
 
@@ -21,7 +23,7 @@ const Login = () => {
     e.preventDefault();
     const success = login(formData.email, formData.password);
     if (success) {
-      navigate("/dashboard");
+      navigate("/dashboard", { replace: true }); // Added replace: true to prevent going back to login page
     } else {
       alert("Invalid email or password!");
     }
@@ -43,30 +45,56 @@ const Login = () => {
         </div>
         <form onSubmit={handleSubmit} className="w-full max-w-lg space-y-4">
           <div>
-            <label className="block text-[var(--text-secondary)] mb-1">
+            <label
+              htmlFor="email"
+              className="block text-[var(--text-secondary)] mb-1"
+            >
               Email:
             </label>
             <input
               type="email"
+              id="email"
               name="email"
               value={formData.email}
               onChange={handleChange}
-              className="w-full bg-[var(--accent)] text-[var(--text-primary)] p-3 rounded-full"
+              className="w-full bg-[var(--accent)] text-[var(--text-primary)] p-3 rounded-full focus:outline-none focus:ring-2 focus:ring-[var(--accent-dark)]"
               required
             />
           </div>
           <div>
-            <label className="block text-[var(--text-secondary)] mb-1">
+            <label
+              htmlFor="password"
+              className="block text-[var(--text-secondary)] mb-1"
+            >
               Password:
             </label>
-            <input
-              type="password"
-              name="password"
-              value={formData.password}
-              onChange={handleChange}
-              className="w-full bg-[var(--accent)] text-[var(--text-primary)] p-3 rounded-full"
-              required
-            />
+            <div className="relative">
+              <input
+                type={showPassword ? "text" : "password"} // Toggle between text and password
+                id="password"
+                name="password"
+                value={formData.password}
+                onChange={handleChange}
+                className="w-full bg-[var(--accent)] text-[var(--text-primary)] p-3 rounded-full focus:outline-none focus:ring-2 focus:ring-[var(--accent-dark)]"
+                required
+              />
+              <div className="absolute inset-y-0 right-0 pr-3 flex items-center">
+                <label className="flex items-center cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={showPassword}
+                    onChange={() => setShowPassword(!showPassword)}
+                    className="sr-only"
+                  />
+                  <span className="text-[var(--text-secondary)] text-sm flex items-center">
+                    <span className="mr-1">
+                      {showPassword ? <FaEye /> : <FaEyeSlash />}
+                    </span>
+                    {showPassword ? "Hide" : "Show"}
+                  </span>
+                </label>
+              </div>
+            </div>
             <p className="text-right text-[var(--text-secondary)] mt-1">
               <a href="#" className="underline">
                 Forgot password?
