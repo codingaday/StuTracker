@@ -25,6 +25,7 @@ const QuizModal = ({ isOpen, onClose }) => {
   const [localQuizQuestions, setLocalQuizQuestions] = useState([]);
   const [localCurrentIndex, setLocalCurrentIndex] = useState(0);
   const [error, setError] = useState(null);
+  const [backgroundColor, setBackgroundColor] = useState("rgba(0, 0, 0, 0.7)"); // Default background
 
   const availableApis = quizzes?.apiBased?.apis || [];
   const courseBasedCourses = quizzes?.courseBased?.courses || [];
@@ -59,6 +60,7 @@ const QuizModal = ({ isOpen, onClose }) => {
     setLocalQuizQuestions([]);
     setLocalCurrentIndex(0);
     setError(null);
+    setBackgroundColor("rgba(0, 0, 0, 0.7)"); // Reset to default
     resetQuiz();
   };
 
@@ -110,8 +112,7 @@ const QuizModal = ({ isOpen, onClose }) => {
       setLocalCurrentIndex((prev) => prev + 1);
       setSelectedOption(null);
     } else {
-      const finalScore = completeQuiz();
-      onClose(finalScore); // Pass final score to onClose
+      handleSubmitQuiz();
     }
   };
 
@@ -130,22 +131,56 @@ const QuizModal = ({ isOpen, onClose }) => {
       );
     }
     const finalScore = completeQuiz();
-    onClose(finalScore); // Pass final score to onClose
+    updateBackgroundColor(finalScore);
   };
 
-  const handleRestartQuiz = () => {
+  const updateBackgroundColor = (score) => {
+    // Dynamic gradient based on score
+    if (score >= 80) {
+      setBackgroundColor("linear-gradient(135deg, #4CAF50, #81C784)"); // Green for high score
+    } else if (score >= 50) {
+      setBackgroundColor("linear-gradient(135deg, #FFCA28, #FFD54F)"); // Yellow for medium score
+    } else {
+      setBackgroundColor("linear-gradient(135deg, #F44336, #EF5350)"); // Red for low score
+    }
+  };
+
+  const getPerformanceMessage = (score) => {
+    if (score >= 80) return "Excellent job! You nailed it!";
+    if (score >= 50) return "Good effort! You're on the right track!";
+    return "Nice try! There's room for improvement.";
+  };
+
+  const getRecommendation = (score) => {
+    if (score >= 80)
+      return "Keep up the great work! Try challenging yourself with advanced topics.";
+    if (score >= 50)
+      return "Review the material and try again to boost your score!";
+    return "Focus on revisiting the basics and practice more quizzes.";
+  };
+
+  const handleRetake = () => {
     resetQuiz();
     setLocalQuizQuestions([]);
     setLocalCurrentIndex(0);
     setSelectedOption(null);
     setShowQuiz(false);
     setIsDropdownOpen(true);
+    setBackgroundColor("rgba(0, 0, 0, 0.7)"); // Reset to default
+  };
+
+  const handleExit = () => {
+    resetState();
+    onClose();
   };
 
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-50">
+    <div
+      className="fixed inset-0 flex items-center justify-center z-50 transition-all duration-500"
+      style={{ background: backgroundColor }}
+    >
       <div className="bg-[var(--primary-bg-end)] p-6 rounded-xl h-screen max-w-2xl w-full max-h-[90vh] overflow-y-auto shadow-2xl border border-[var(--accent)]">
         {!showQuiz ? (
           <div className="space-y-6">
@@ -349,21 +384,27 @@ const QuizModal = ({ isOpen, onClose }) => {
                 <h3 className="text-2xl font-bold text-[var(--text-primary)] mb-4">
                   Quiz Completed!
                 </h3>
-                <p className="text-xl text-[var(--text-secondary)] mb-6">
+                <p className="text-4xl font-bold text-[var(--text-primary)] mb-6 animate-bounce">
                   Your Score: {Math.round(quizScore)}%
+                </p>
+                <p className="text-lg text-[var(--text-primary)] font-medium mb-4">
+                  {getPerformanceMessage(quizScore)}
+                </p>
+                <p className="text-[var(--text-secondary)] italic mb-6">
+                  "{getRecommendation(quizScore)}"
                 </p>
                 <div className="flex justify-center gap-4">
                   <button
-                    onClick={handleRestartQuiz}
+                    onClick={handleRetake}
                     className="px-5 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors"
                   >
-                    Restart Quiz
+                    Retake Quiz
                   </button>
                   <button
-                    onClick={handleCancel}
-                    className="px-5 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors"
+                    onClick={handleExit}
+                    className="px-5 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors"
                   >
-                    Close
+                    Exit
                   </button>
                 </div>
               </div>

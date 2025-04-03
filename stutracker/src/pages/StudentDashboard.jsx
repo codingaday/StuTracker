@@ -30,7 +30,6 @@ const StudentDashboard = () => {
     markCourseAsDone,
     markMultipleCoursesAsDone,
     resetQuiz,
-    quizScore,
   } = useAuth();
 
   const navigate = useNavigate();
@@ -617,33 +616,40 @@ const StudentDashboard = () => {
         )}
 
         {/* Progress Section */}
-        <section className="mb-12">
-          <div className="flex justify-between items-center max-w-2xl mx-auto mb-4">
-            <h2 className="text-xl md:text-2xl font-bold">Your Progress</h2>
-            <Button
-              onClick={() => setShowProgress(!showProgress)}
-              className="bg-[var(--accent)] hover:bg-[var(--accent-dark)]"
-            >
-              {showProgress ? "Hide Progress" : "Show Progress"}
-            </Button>
-          </div>
-          {showProgress && (
-            <div className="max-w-2xl mx-auto">
-              {progressData.length > 0 ? (
-                progressData.map((data, index) => (
-                  <ProgressBar
-                    key={index}
-                    subject={data.subject}
-                    percentage={data.percentage}
-                  />
-                ))
-              ) : (
-                <p className="text-center text-[var(--text-secondary)]">
-                  No progress data available.
-                </p>
-              )}
+        <section className="mb-12 mt-20 ">
+          <h2 className="text-xl md:text-2xl font-bold text-center mb-6">
+            Your Progress
+          </h2>
+          <div className="shadow-lg  transform transition-all duration-300 hover:scale-105 max-w-4xl mx-auto bg-[var(--primary-bg-end)] rounded-lg">
+            <div className="flex items-center  justify-end  pl-6 pt-6 pr-6 pb-9">
+              <Button
+                onClick={() => setShowProgress(!showProgress)}
+                className="bg-[var(--accent)] hover:bg-[var(--accent-dark)]"
+              >
+                {showProgress ? "Hide Progress" : "Show Progress"}
+              </Button>
             </div>
-          )}
+            {showProgress && (
+              <div
+                className=" p-6
+"
+              >
+                {progressData.length > 0 ? (
+                  progressData.map((data, index) => (
+                    <ProgressBar
+                      key={index}
+                      subject={data.subject}
+                      percentage={data.percentage}
+                    />
+                  ))
+                ) : (
+                  <p className="text-center text-[var(--text-secondary)]">
+                    No progress data available.
+                  </p>
+                )}
+              </div>
+            )}
+          </div>
         </section>
 
         {/* Courses Section */}
@@ -651,7 +657,7 @@ const StudentDashboard = () => {
           <h2 className="text-xl md:text-2xl font-bold text-center mb-6">
             Your Courses
           </h2>
-          <div className="bg-[var(--primary-bg-end)] p-6 rounded-lg">
+          <div className="bg-[var(--primary-bg-end)] p-6 rounded-lg shadow-lg  transform transition-all duration-300 hover:scale-105">
             <div className="flex justify-between items-center mb-4">
               <h3 className="text-lg font-semibold">Current Courses</h3>
               <div className="flex gap-2">
@@ -801,7 +807,7 @@ const StudentDashboard = () => {
           <h2 className="text-xl md:text-2xl font-bold text-center mb-6">
             Your Goals
           </h2>
-          <div className="bg-[var(--primary-bg-end)] p-6 rounded-lg">
+          <div className="bg-[var(--primary-bg-end)] p-6 rounded-lg shadow-lg  transform transition-all duration-300 hover:scale-105">
             <div className="flex justify-between items-center mb-4">
               <h3 className="text-lg font-semibold">Current Goals</h3>
               <div className="flex gap-2">
@@ -915,7 +921,7 @@ const StudentDashboard = () => {
           <div className="flex-1">
             <StreakMotivator streak={streak} />
           </div>
-          <div className="flex-1 bg-[var(--primary-bg-end)] p-6 rounded-lg text-center">
+          <div className="flex-1 bg-[var(--primary-bg-end)] p-6 rounded-lg text-center shadow-lg  transform transition-all duration-300 hover:scale-105">
             <h3 className="text-lg font-semibold mb-4">Daily Quiz Challenge</h3>
             <Button onClick={() => setIsQuizOpen(true)}>Take a Quiz</Button>
           </div>
