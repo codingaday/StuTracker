@@ -9,6 +9,7 @@ const QuizModal = ({ isOpen, onClose }) => {
     quizScore,
     quizCompleted,
     resetQuiz,
+    completeQuiz,
   } = useAuth();
 
   const [quizType, setQuizType] = useState(null);
@@ -31,7 +32,6 @@ const QuizModal = ({ isOpen, onClose }) => {
     (apiBasedApi &&
       availableApis.find((a) => a.id === Number(apiBasedApi))?.courses) ||
     [];
-
   const courseBasedChapters = courseBasedCourse
     ? courseBasedCourses.find((c) => c.name === courseBasedCourse)
         ?.chapters || ["All"]
@@ -42,17 +42,8 @@ const QuizModal = ({ isOpen, onClose }) => {
       ]
     : ["All"];
 
-  // Debug: Log the quizzes data to verify chapters
   useEffect(() => {
-    console.log("Quizzes data from context:", quizzes);
-    console.log("Course-based courses:", courseBasedCourses);
-    console.log("Selected course chapters:", courseBasedChapters);
-  }, [quizzes, courseBasedCourse]);
-
-  useEffect(() => {
-    if (!isOpen) {
-      resetState();
-    }
+    if (!isOpen) resetState();
   }, [isOpen]);
 
   const resetState = () => {
@@ -88,7 +79,6 @@ const QuizModal = ({ isOpen, onClose }) => {
               course: apiBasedCourse,
               chapter: apiBasedChapter,
             };
-
       const questions = await fetchQuizQuestions(selection);
       if (questions && questions.length > 0) {
         setLocalQuizQuestions(questions);
@@ -115,14 +105,13 @@ const QuizModal = ({ isOpen, onClose }) => {
 
   const handleNextQuestion = () => {
     if (selectedOption === null) return;
-
     submitQuizAnswer(localQuizQuestions[localCurrentIndex].id, selectedOption);
-
     if (localCurrentIndex < localQuizQuestions.length - 1) {
       setLocalCurrentIndex((prev) => prev + 1);
       setSelectedOption(null);
     } else {
-      setShowQuiz(false);
+      const finalScore = completeQuiz();
+      onClose(finalScore); // Pass final score to onClose
     }
   };
 
@@ -140,10 +129,8 @@ const QuizModal = ({ isOpen, onClose }) => {
         selectedOption
       );
     }
-    setShowQuiz(false);
-    setLocalQuizQuestions([]);
-    setLocalCurrentIndex(0);
-    setSelectedOption(null);
+    const finalScore = completeQuiz();
+    onClose(finalScore); // Pass final score to onClose
   };
 
   const handleRestartQuiz = () => {
@@ -159,7 +146,7 @@ const QuizModal = ({ isOpen, onClose }) => {
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-50">
-      <div className="bg-[var(--primary-bg-end)] p-6 rounded-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto shadow-2xl border border-[var(--accent)]">
+      <div className="bg-[var(--primary-bg-end)] p-6 rounded-xl h-screen max-w-2xl w-full max-h-[90vh] overflow-y-auto shadow-2xl border border-[var(--accent)]">
         {!showQuiz ? (
           <div className="space-y-6">
             <div className="flex justify-between items-center">
@@ -173,13 +160,11 @@ const QuizModal = ({ isOpen, onClose }) => {
                 ×
               </button>
             </div>
-
             {error && (
               <div className="p-4 bg-red-100 text-red-700 rounded-lg">
                 {error}
               </div>
             )}
-
             <div className="relative">
               <button
                 onClick={() => setIsDropdownOpen(!isDropdownOpen)}
@@ -190,7 +175,6 @@ const QuizModal = ({ isOpen, onClose }) => {
                 </span>
                 <span>{isDropdownOpen ? "▲" : "▼"}</span>
               </button>
-
               {isDropdownOpen && (
                 <div className="absolute top-full left-0 w-full mt-2 bg-[var(--primary-bg-start)] rounded-lg shadow-lg z-10 p-4 border border-[var(--accent)]">
                   <div className="space-y-6">
@@ -261,7 +245,6 @@ const QuizModal = ({ isOpen, onClose }) => {
                         )}
                       </div>
                     </div>
-
                     <div>
                       <h3 className="font-semibold text-[var(--text-primary)] mb-2">
                         API-Based
@@ -403,7 +386,6 @@ const QuizModal = ({ isOpen, onClose }) => {
                     </button>
                   </div>
                 </div>
-
                 <div className="bg-[var(--primary-bg-start)] p-6 rounded-lg border border-[var(--accent)]">
                   <p className="text-lg text-[var(--text-primary)] mb-6 font-medium">
                     {localQuizQuestions[localCurrentIndex]?.question ||
@@ -427,7 +409,6 @@ const QuizModal = ({ isOpen, onClose }) => {
                     )}
                   </div>
                 </div>
-
                 <div className="flex justify-between items-center">
                   <button
                     onClick={handlePreviousQuestion}

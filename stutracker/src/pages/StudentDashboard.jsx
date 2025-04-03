@@ -28,17 +28,9 @@ const StudentDashboard = () => {
     mockCourses,
     markGoalAsDone,
     markCourseAsDone,
-    getStudentProgress,
     markMultipleCoursesAsDone,
-    quizzes,
-    fetchQuizQuestions,
-    submitQuizAnswer,
-    completeQuiz,
     resetQuiz,
-    quizQuestions,
-    currentQuestionIndex,
     quizScore,
-    quizCompleted,
   } = useAuth();
 
   const navigate = useNavigate();
@@ -126,6 +118,11 @@ const StudentDashboard = () => {
       const fetchedProgress = getProgressData(user.email, user.userType);
       const fetchedStreak = getStreak(user.email);
       const fetchedGoals = getGoals(user.email);
+      const studentCourses = mockCourses.filter((course) =>
+        course.students.includes(user.email)
+      );
+
+      // Sync progress with courses
       setProgressData(fetchedProgress);
       setStreak(fetchedStreak);
       setGoals(fetchedGoals);
@@ -135,10 +132,6 @@ const StudentDashboard = () => {
         gradeLevel: user.gradeLevel,
         school: user.school,
       });
-
-      const studentCourses = mockCourses.filter((course) =>
-        course.students.includes(user.email)
-      );
       setCourses(studentCourses);
     }
   }, [user, navigate, getProgressData, getStreak, getGoals, mockCourses]);
@@ -934,7 +927,7 @@ const StudentDashboard = () => {
         onClose={() => {
           setIsQuizOpen(false);
           resetQuiz();
-          // Refresh progress data after quiz completion
+          // Refresh progress data after quiz completion to include quiz score
           setProgressData(getProgressData(user.email, user.userType));
         }}
       />

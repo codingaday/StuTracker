@@ -313,44 +313,46 @@ export const AuthProvider = ({ children }) => {
         );
       }
     };
-
     window.addEventListener("storage", handleStorageChange);
     return () => window.removeEventListener("storage", handleStorageChange);
   }, []);
 
-  useEffect(() => {
-    localStorage.setItem("mockUsers", JSON.stringify(mockUsers));
-  }, [mockUsers]);
-
-  useEffect(() => {
-    localStorage.setItem(
-      "mockStudentProgress",
-      JSON.stringify(mockStudentProgress)
-    );
-  }, [mockStudentProgress]);
-
-  useEffect(() => {
-    localStorage.setItem(
-      "mockTeacherClassProgress",
-      JSON.stringify(mockTeacherClassProgress)
-    );
-  }, [mockTeacherClassProgress]);
-
-  useEffect(() => {
-    localStorage.setItem("mockStreaks", JSON.stringify(mockStreaks));
-  }, [mockStreaks]);
-
-  useEffect(() => {
-    localStorage.setItem("mockCourses", JSON.stringify(mockCourses));
-  }, [mockCourses]);
-
-  useEffect(() => {
-    localStorage.setItem("mockGoals", JSON.stringify(mockGoals));
-  }, [mockGoals]);
-
-  useEffect(() => {
-    localStorage.setItem("mockQuizzes", JSON.stringify(quizzes));
-  }, [quizzes]);
+  useEffect(
+    () => localStorage.setItem("mockUsers", JSON.stringify(mockUsers)),
+    [mockUsers]
+  );
+  useEffect(
+    () =>
+      localStorage.setItem(
+        "mockStudentProgress",
+        JSON.stringify(mockStudentProgress)
+      ),
+    [mockStudentProgress]
+  );
+  useEffect(
+    () =>
+      localStorage.setItem(
+        "mockTeacherClassProgress",
+        JSON.stringify(mockTeacherClassProgress)
+      ),
+    [mockTeacherClassProgress]
+  );
+  useEffect(
+    () => localStorage.setItem("mockStreaks", JSON.stringify(mockStreaks)),
+    [mockStreaks]
+  );
+  useEffect(
+    () => localStorage.setItem("mockCourses", JSON.stringify(mockCourses)),
+    [mockCourses]
+  );
+  useEffect(
+    () => localStorage.setItem("mockGoals", JSON.stringify(mockGoals)),
+    [mockGoals]
+  );
+  useEffect(
+    () => localStorage.setItem("mockQuizzes", JSON.stringify(quizzes)),
+    [quizzes]
+  );
 
   useEffect(() => {
     const storedToken = localStorage.getItem("token");
@@ -378,22 +380,16 @@ export const AuthProvider = ({ children }) => {
 
   const signup = (userData) => {
     const newUser = { ...userData };
-    setMockUsers((prevUsers) => [...prevUsers, newUser]); // Add to mock database
+    setMockUsers((prevUsers) => [...prevUsers, newUser]);
 
-    // Initialize progress, streak, and goals for the new user
     if (newUser.userType === "student") {
       setMockStudentProgress((prev) => ({
         ...prev,
-        [newUser.email]: [
-          { subject: "Math", percentage: 0 },
-          { subject: "Science", percentage: 0 },
-          { subject: "English", percentage: 0 },
-        ],
+        [newUser.email]: mockCourses
+          .filter((course) => course.students.includes(newUser.email))
+          .map((course) => ({ subject: course.name, percentage: 0 })),
       }));
-      setMockGoals((prev) => ({
-        ...prev,
-        [newUser.email]: [],
-      }));
+      setMockGoals((prev) => ({ ...prev, [newUser.email]: [] }));
     } else if (newUser.userType === "teacher") {
       setMockTeacherClassProgress((prev) => ({
         ...prev,
@@ -404,12 +400,9 @@ export const AuthProvider = ({ children }) => {
         ],
       }));
     }
-    setMockStreaks((prev) => ({
-      ...prev,
-      [newUser.email]: 0,
-    }));
+    setMockStreaks((prev) => ({ ...prev, [newUser.email]: 0 }));
 
-    const mockToken = `mock-jwt-${Date.now()}`; // Simulate a JWT token
+    const mockToken = `mock-jwt-${Date.now()}`;
     localStorage.setItem("token", mockToken);
     localStorage.setItem("user", JSON.stringify(newUser));
     setToken(mockToken);
@@ -425,16 +418,26 @@ export const AuthProvider = ({ children }) => {
 
   const getProgressData = (email, userType) => {
     if (userType === "student") {
-      return mockStudentProgress[email] || [];
+      const studentCourses = mockCourses.filter((course) =>
+        course.students.includes(email)
+      );
+      const progress = mockStudentProgress[email] || [];
+      return studentCourses.map((course) => {
+        const existingProgress = progress.find(
+          (p) => p.subject === course.name
+        );
+        return {
+          subject: course.name,
+          percentage: existingProgress ? existingProgress.percentage : 0,
+        };
+      });
     } else if (userType === "teacher") {
       return mockTeacherClassProgress[email] || [];
     }
     return [];
   };
 
-  const getStreak = (email) => {
-    return mockStreaks[email] || 0;
-  };
+  const getStreak = (email) => mockStreaks[email] || 0;
 
   const addCourse = (courseName, teacherEmail) => {
     const newCourse = {
@@ -449,11 +452,19 @@ export const AuthProvider = ({ children }) => {
 
   const deleteCourse = (courseId) => {
     setMockCourses((prev) => prev.filter((course) => course.id !== courseId));
+    setMockStudentProgress((prev) => {
+      const updated = { ...prev };
+      Object.keys(updated).forEach((email) => {
+        updated[email] = updated[email].filter((p) =>
+          mockCourses.some((c) => c.id !== courseId && c.name === p.subject)
+        );
+      });
+      return updated;
+    });
   };
 
-  const getCourses = (teacherEmail) => {
-    return mockCourses.filter((course) => course.teacherEmail === teacherEmail);
-  };
+  const getCourses = (teacherEmail) =>
+    mockCourses.filter((course) => course.teacherEmail === teacherEmail);
 
   const addStudentToCourse = (courseId, studentEmail) => {
     setMockCourses((prev) =>
@@ -463,6 +474,20 @@ export const AuthProvider = ({ children }) => {
           : course
       )
     );
+    setMockStudentProgress((prev) => {
+      const updated = { ...prev };
+      const course = mockCourses.find((c) => c.id === courseId);
+      if (
+        course &&
+        !updated[studentEmail]?.some((p) => p.subject === course.name)
+      ) {
+        updated[studentEmail] = [
+          ...(updated[studentEmail] || []),
+          { subject: course.name, percentage: 0 },
+        ];
+      }
+      return updated;
+    });
   };
 
   const removeStudentFromCourse = (courseId, studentEmail) => {
@@ -482,28 +507,24 @@ export const AuthProvider = ({ children }) => {
 
   const getStudentsInCourse = (courseId) => {
     const course = mockCourses.find((course) => course.id === courseId);
-    if (!course) return [];
-    return mockUsers.filter(
-      (user) =>
-        user.userType === "student" && course.students.includes(user.email)
-    );
+    return course
+      ? mockUsers.filter(
+          (user) =>
+            user.userType === "student" && course.students.includes(user.email)
+        )
+      : [];
   };
 
-  const getStudentProgress = (studentEmail) => {
-    return mockStudentProgress[studentEmail] || [];
-  };
+  const getStudentProgress = (studentEmail) =>
+    mockStudentProgress[studentEmail] || [];
 
-  const getStudentCourses = (studentEmail) => {
-    return mockCourses.filter((course) =>
-      course.students.includes(studentEmail)
-    );
-  };
+  const getStudentCourses = (studentEmail) =>
+    mockCourses.filter((course) => course.students.includes(studentEmail));
 
-  const getTeacherForCourse = (teacherEmail) => {
-    return mockUsers.find(
+  const getTeacherForCourse = (teacherEmail) =>
+    mockUsers.find(
       (user) => user.email === teacherEmail && user.userType === "teacher"
     );
-  };
 
   const addGoal = (studentEmail, goalContent) => {
     setMockGoals((prev) => ({
@@ -533,9 +554,7 @@ export const AuthProvider = ({ children }) => {
     }));
   };
 
-  const getGoals = (studentEmail) => {
-    return mockGoals[studentEmail] || [];
-  };
+  const getGoals = (studentEmail) => mockGoals[studentEmail] || [];
 
   const markGoalAsDone = (studentEmail, goalIndex) => {
     setMockGoals((prev) => ({
@@ -556,10 +575,11 @@ export const AuthProvider = ({ children }) => {
 
   const markMultipleCoursesAsDone = async (courseIds) => {
     try {
-      const updatedCourses = mockCourses.map((course) =>
-        courseIds.includes(course.id) ? { ...course, done: true } : course
+      setMockCourses((prev) =>
+        prev.map((course) =>
+          courseIds.includes(course.id) ? { ...course, done: true } : course
+        )
       );
-      setMockCourses(updatedCourses);
       return true;
     } catch (error) {
       console.error("Error marking courses as done:", error);
@@ -582,7 +602,6 @@ export const AuthProvider = ({ children }) => {
   const fetchQuizQuestions = async (selection) => {
     setCurrentSelection(selection);
     let questions = [];
-
     if (selection.type === "courseBased") {
       const course = quizzes.courseBased.courses.find(
         (c) => c.name === selection.course
@@ -598,7 +617,9 @@ export const AuthProvider = ({ children }) => {
         }
       }
     } else if (selection.type === "apiBased") {
-      const api = quizzes.apiBased.apis.find((a) => a.id == selection.api);
+      const api = quizzes.apiBased.apis.find(
+        (a) => a.id === Number(selection.api)
+      );
       if (api) {
         const course = api.courses.find((c) => c.name === selection.course);
         if (course && course.questions) {
@@ -613,7 +634,6 @@ export const AuthProvider = ({ children }) => {
         }
       }
     }
-
     setQuizQuestions(questions);
     setCurrentQuestionIndex(0);
     setQuizScore(0);
@@ -625,39 +645,27 @@ export const AuthProvider = ({ children }) => {
     const question = quizQuestions.find((q) => q.id === questionId);
     if (!question) return;
 
-    if (question.correctAnswer === selectedOption) {
-      setQuizScore((prev) => prev + 100 / quizQuestions.length);
-    }
-
-    if (currentQuestionIndex < quizQuestions.length - 1) {
-      setCurrentQuestionIndex((prev) => prev + 1);
-    } else {
-      setQuizCompleted(true);
-      if (user?.userType === "student" && currentSelection?.course) {
-        setMockStudentProgress((prev) => {
-          const updatedProgress = { ...prev };
+    const isCorrect = question.correctAnswer === selectedOption;
+    const scoreIncrement = isCorrect ? 100 / quizQuestions.length : 0;
+    setQuizScore((prev) => {
+      const newScore = prev + scoreIncrement;
+      if (
+        currentQuestionIndex === quizQuestions.length - 1 &&
+        user?.userType === "student" &&
+        currentSelection?.course
+      ) {
+        setMockStudentProgress((prevProgress) => {
+          const updatedProgress = { ...prevProgress };
           const studentProgress = updatedProgress[user.email] || [];
           const subjectIndex = studentProgress.findIndex(
             (s) => s.subject === currentSelection.course
           );
+          const finalScore = Math.round(newScore);
 
           if (subjectIndex >= 0) {
             updatedProgress[user.email] = studentProgress.map((subject, idx) =>
               idx === subjectIndex
-                ? {
-                    ...subject,
-                    percentage: Math.min(
-                      Math.round(
-                        subject.percentage +
-                          (quizScore +
-                            (question.correctAnswer === selectedOption
-                              ? 100 / quizQuestions.length
-                              : 0)) /
-                            2
-                      ),
-                      100
-                    ),
-                  }
+                ? { ...subject, percentage: Math.min(finalScore, 100) }
                 : subject
             );
           } else {
@@ -665,26 +673,52 @@ export const AuthProvider = ({ children }) => {
               ...studentProgress,
               {
                 subject: currentSelection.course,
-                percentage: Math.min(
-                  Math.round(
-                    quizScore +
-                      (question.correctAnswer === selectedOption
-                        ? 100 / quizQuestions.length
-                        : 0)
-                  ),
-                  100
-                ),
+                percentage: Math.min(finalScore, 100),
               },
             ];
           }
           return updatedProgress;
         });
+        setQuizCompleted(true);
       }
+      return newScore;
+    });
+
+    if (currentQuestionIndex < quizQuestions.length - 1) {
+      setCurrentQuestionIndex((prev) => prev + 1);
     }
   };
 
   const completeQuiz = () => {
     setQuizCompleted(true);
+    if (user?.userType === "student" && currentSelection?.course) {
+      setMockStudentProgress((prev) => {
+        const updatedProgress = { ...prev };
+        const studentProgress = updatedProgress[user.email] || [];
+        const subjectIndex = studentProgress.findIndex(
+          (s) => s.subject === currentSelection.course
+        );
+        const finalScore = Math.round(quizScore);
+
+        if (subjectIndex >= 0) {
+          updatedProgress[user.email] = studentProgress.map((subject, idx) =>
+            idx === subjectIndex
+              ? { ...subject, percentage: Math.min(finalScore, 100) }
+              : subject
+          );
+        } else {
+          updatedProgress[user.email] = [
+            ...studentProgress,
+            {
+              subject: currentSelection.course,
+              percentage: Math.min(finalScore, 100),
+            },
+          ];
+        }
+        return updatedProgress;
+      });
+    }
+    return quizScore;
   };
 
   const resetQuiz = () => {
@@ -712,13 +746,9 @@ export const AuthProvider = ({ children }) => {
         }
         return course;
       });
-
       return {
         ...prev,
-        courseBased: {
-          ...prev.courseBased,
-          courses: updatedCourses,
-        },
+        courseBased: { ...prev.courseBased, courses: updatedCourses },
       };
     });
   };
