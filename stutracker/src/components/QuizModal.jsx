@@ -1,95 +1,483 @@
-import { useState, useEffect } from "react";
-import axios from "axios";
-import Button from "./Button";
+import React, { useState, useEffect } from "react";
+import { useAuth } from "../context/AuthContext";
 
 const QuizModal = ({ isOpen, onClose }) => {
-  const [question, setQuestion] = useState(null);
-  const [selectedAnswer, setSelectedAnswer] = useState(null);
-  const [isCorrect, setIsCorrect] = useState(null);
+  const {
+    quizzes = { apiBased: { apis: [] }, courseBased: { courses: [] } },
+    fetchQuizQuestions,
+    submitQuizAnswer,
+    quizScore,
+    quizCompleted,
+    resetQuiz,
+  } = useAuth();
+
+  const [quizType, setQuizType] = useState(null);
+  const [courseBasedCourse, setCourseBasedCourse] = useState("");
+  const [courseBasedChapter, setCourseBasedChapter] = useState("All");
+  const [apiBasedApi, setApiBasedApi] = useState("");
+  const [apiBasedCourse, setApiBasedCourse] = useState("");
+  const [apiBasedChapter, setApiBasedChapter] = useState("All");
+  const [selectedOption, setSelectedOption] = useState(null);
+  const [showQuiz, setShowQuiz] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const [localQuizQuestions, setLocalQuizQuestions] = useState([]);
+  const [localCurrentIndex, setLocalCurrentIndex] = useState(0);
   const [error, setError] = useState(null);
 
-  useEffect(() => {
-    if (isOpen) {
-      // Reset state when modal opens
-      setQuestion(null);
-      setSelectedAnswer(null);
-      setIsCorrect(null);
-      setError(null);
+  const availableApis = quizzes?.apiBased?.apis || [];
+  const courseBasedCourses = quizzes?.courseBased?.courses || [];
+  const apiBasedCourses =
+    (apiBasedApi &&
+      availableApis.find((a) => a.id === Number(apiBasedApi))?.courses) ||
+    [];
 
-      // Fetch a random true/false question
-      axios
-        .get("https://opentdb.com/api.php?amount=1&type=boolean")
-        .then((response) => {
-          const fetchedQuestion = response.data.results[0];
-          setQuestion({
-            text: fetchedQuestion.question,
-            correctAnswer: fetchedQuestion.correct_answer, // "True" or "False"
-            answers: ["True", "False"],
-          });
-        })
-        .catch((error) => {
-          setError("Failed to load quiz question.");
-        });
+  const courseBasedChapters = courseBasedCourse
+    ? courseBasedCourses.find((c) => c.name === courseBasedCourse)
+        ?.chapters || ["All"]
+    : ["All"];
+  const apiBasedChapters = apiBasedCourse
+    ? apiBasedCourses.find((c) => c.name === apiBasedCourse)?.chapters || [
+        "All",
+      ]
+    : ["All"];
+
+  // Debug: Log the quizzes data to verify chapters
+  useEffect(() => {
+    console.log("Quizzes data from context:", quizzes);
+    console.log("Course-based courses:", courseBasedCourses);
+    console.log("Selected course chapters:", courseBasedChapters);
+  }, [quizzes, courseBasedCourse]);
+
+  useEffect(() => {
+    if (!isOpen) {
+      resetState();
     }
   }, [isOpen]);
 
-  const handleAnswer = (answer) => {
-    const isAnswerCorrect = answer === question.correctAnswer;
-    setSelectedAnswer(answer);
-    setIsCorrect(isAnswerCorrect);
+  const resetState = () => {
+    setQuizType(null);
+    setCourseBasedCourse("");
+    setCourseBasedChapter("All");
+    setApiBasedApi("");
+    setApiBasedCourse("");
+    setApiBasedChapter("All");
+    setSelectedOption(null);
+    setShowQuiz(false);
+    setIsDropdownOpen(false);
+    setLocalQuizQuestions([]);
+    setLocalCurrentIndex(0);
+    setError(null);
+    resetQuiz();
   };
 
-  const handleClose = () => {
-    setQuestion(null);
-    setSelectedAnswer(null);
-    setIsCorrect(null);
+  const handleStartQuiz = async () => {
+    setIsLoading(true);
     setError(null);
+    try {
+      const selection =
+        quizType === "courseBased"
+          ? {
+              type: "courseBased",
+              course: courseBasedCourse,
+              chapter: courseBasedChapter,
+            }
+          : {
+              type: "apiBased",
+              api: Number(apiBasedApi),
+              course: apiBasedCourse,
+              chapter: apiBasedChapter,
+            };
+
+      const questions = await fetchQuizQuestions(selection);
+      if (questions && questions.length > 0) {
+        setLocalQuizQuestions(questions);
+        setLocalCurrentIndex(0);
+        setShowQuiz(true);
+        setIsDropdownOpen(false);
+        setSelectedOption(null);
+      } else {
+        setError("No questions available for this selection.");
+        setShowQuiz(false);
+      }
+    } catch (error) {
+      setError("Failed to load quiz questions. Please try again.");
+      setShowQuiz(false);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleCancel = () => {
+    resetState();
     onClose();
+  };
+
+  const handleNextQuestion = () => {
+    if (selectedOption === null) return;
+
+    submitQuizAnswer(localQuizQuestions[localCurrentIndex].id, selectedOption);
+
+    if (localCurrentIndex < localQuizQuestions.length - 1) {
+      setLocalCurrentIndex((prev) => prev + 1);
+      setSelectedOption(null);
+    } else {
+      setShowQuiz(false);
+    }
+  };
+
+  const handlePreviousQuestion = () => {
+    if (localCurrentIndex > 0) {
+      setLocalCurrentIndex((prev) => prev - 1);
+      setSelectedOption(null);
+    }
+  };
+
+  const handleSubmitQuiz = () => {
+    if (selectedOption !== null) {
+      submitQuizAnswer(
+        localQuizQuestions[localCurrentIndex].id,
+        selectedOption
+      );
+    }
+    setShowQuiz(false);
+    setLocalQuizQuestions([]);
+    setLocalCurrentIndex(0);
+    setSelectedOption(null);
+  };
+
+  const handleRestartQuiz = () => {
+    resetQuiz();
+    setLocalQuizQuestions([]);
+    setLocalCurrentIndex(0);
+    setSelectedOption(null);
+    setShowQuiz(false);
+    setIsDropdownOpen(true);
   };
 
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div className="bg-[var(--primary-bg-end)] p-6 rounded-lg max-w-md w-full">
-        <h2 className="text-xl font-bold mb-4">Quiz Challenge</h2>
-        {error && <p className="text-red-500 mb-4">{error}</p>}
-        {question ? (
-          <>
-            <p
-              className="mb-4"
-              dangerouslySetInnerHTML={{ __html: question.text }}
-            />
-            <div className="space-y-2">
-              {question.answers.map((answer, index) => (
-                <Button
-                  key={index}
-                  onClick={() => handleAnswer(answer)}
-                  className={`w-full ${
-                    selectedAnswer !== null
-                      ? answer === question.correctAnswer
-                        ? "bg-green-500"
-                        : "bg-red-500"
-                      : ""
-                  }`}
-                  disabled={selectedAnswer !== null}
-                >
-                  {answer}
-                </Button>
-              ))}
+    <div className="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-50">
+      <div className="bg-[var(--primary-bg-end)] p-6 rounded-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto shadow-2xl border border-[var(--accent)]">
+        {!showQuiz ? (
+          <div className="space-y-6">
+            <div className="flex justify-between items-center">
+              <h2 className="text-2xl font-bold text-[var(--text-primary)]">
+                Take a Quiz
+              </h2>
+              <button
+                onClick={handleCancel}
+                className="text-[var(--text-primary)] hover:text-red-500 text-2xl"
+              >
+                ×
+              </button>
             </div>
-            {selectedAnswer !== null && (
-              <p className="mt-4 text-center">
-                {isCorrect ? "Correct!" : "Incorrect!"}
-              </p>
+
+            {error && (
+              <div className="p-4 bg-red-100 text-red-700 rounded-lg">
+                {error}
+              </div>
             )}
-          </>
+
+            <div className="relative">
+              <button
+                onClick={() => setIsDropdownOpen(!isDropdownOpen)}
+                className="w-full p-4 bg-[var(--accent)] text-[var(--text-primary)] rounded-lg hover:bg-[var(--accent-dark)] transition-colors flex justify-between items-center"
+              >
+                <span>
+                  {quizType ? `${quizType} Quiz` : "Select Quiz Type"}
+                </span>
+                <span>{isDropdownOpen ? "▲" : "▼"}</span>
+              </button>
+
+              {isDropdownOpen && (
+                <div className="absolute top-full left-0 w-full mt-2 bg-[var(--primary-bg-start)] rounded-lg shadow-lg z-10 p-4 border border-[var(--accent)]">
+                  <div className="space-y-6">
+                    <div>
+                      <h3 className="font-semibold text-[var(--text-primary)] mb-2">
+                        Course-Based
+                      </h3>
+                      <div className="space-y-4">
+                        <div>
+                          <label className="block text-[var(--text-primary)] mb-1">
+                            Select Course
+                          </label>
+                          <select
+                            className="w-full p-2 bg-[var(--accent)] text-[var(--text-primary)] rounded-lg focus:ring-2 focus:ring-[var(--accent-dark)]"
+                            value={courseBasedCourse}
+                            onChange={(e) => {
+                              setQuizType("courseBased");
+                              setCourseBasedCourse(e.target.value);
+                              setCourseBasedChapter("All");
+                              setApiBasedApi("");
+                              setApiBasedCourse("");
+                              setApiBasedChapter("All");
+                            }}
+                          >
+                            <option value="">Choose a Course</option>
+                            {courseBasedCourses.map((course) => (
+                              <option key={course.id} value={course.name}>
+                                {course.name}
+                              </option>
+                            ))}
+                          </select>
+                        </div>
+                        <div>
+                          <label className="block text-[var(--text-primary)] mb-1">
+                            Select Chapter
+                          </label>
+                          <select
+                            className="w-full p-2 bg-[var(--accent)] text-[var(--text-primary)] rounded-lg focus:ring-2 focus:ring-[var(--accent-dark)]"
+                            value={courseBasedChapter}
+                            onChange={(e) =>
+                              setCourseBasedChapter(e.target.value)
+                            }
+                            disabled={!courseBasedCourse}
+                          >
+                            {courseBasedChapters.map((chapter, index) => (
+                              <option key={index} value={chapter}>
+                                {chapter}
+                              </option>
+                            ))}
+                          </select>
+                        </div>
+                        {quizType === "courseBased" && (
+                          <div className="flex justify-end gap-4">
+                            <button
+                              onClick={handleCancel}
+                              className="px-5 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors"
+                            >
+                              Cancel
+                            </button>
+                            <button
+                              onClick={handleStartQuiz}
+                              className="px-5 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed"
+                              disabled={!courseBasedCourse || isLoading}
+                            >
+                              {isLoading ? "Loading..." : "Start Quiz"}
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+
+                    <div>
+                      <h3 className="font-semibold text-[var(--text-primary)] mb-2">
+                        API-Based
+                      </h3>
+                      <div className="space-y-4">
+                        <div>
+                          <label className="block text-[var(--text-primary)] mb-1">
+                            Select API
+                          </label>
+                          <select
+                            className="w-full p-2 bg-[var(--accent)] text-[var(--text-primary)] rounded-lg focus:ring-2 focus:ring-[var(--accent-dark)]"
+                            value={apiBasedApi}
+                            onChange={(e) => {
+                              setQuizType("apiBased");
+                              setApiBasedApi(e.target.value);
+                              setApiBasedCourse("");
+                              setApiBasedChapter("All");
+                              setCourseBasedCourse("");
+                              setCourseBasedChapter("All");
+                            }}
+                          >
+                            <option value="">Choose an API</option>
+                            {availableApis.map((api) => (
+                              <option key={api.id} value={api.id}>
+                                {api.name}
+                              </option>
+                            ))}
+                          </select>
+                        </div>
+                        <div>
+                          <label className="block text-[var(--text-primary)] mb-1">
+                            Select Course
+                          </label>
+                          <select
+                            className="w-full p-2 bg-[var(--accent)] text-[var(--text-primary)] rounded-lg focus:ring-2 focus:ring-[var(--accent-dark)]"
+                            value={apiBasedCourse}
+                            onChange={(e) => {
+                              setApiBasedCourse(e.target.value);
+                              setApiBasedChapter("All");
+                            }}
+                            disabled={
+                              !apiBasedApi || apiBasedCourses.length === 0
+                            }
+                          >
+                            <option value="">Choose a Course</option>
+                            {apiBasedCourses.map((course) => (
+                              <option key={course.name} value={course.name}>
+                                {course.name}
+                              </option>
+                            ))}
+                          </select>
+                        </div>
+                        <div>
+                          <label className="block text-[var(--text-primary)] mb-1">
+                            Select Chapter
+                          </label>
+                          <select
+                            className="w-full p-2 bg-[var(--accent)] text-[var(--text-primary)] rounded-lg focus:ring-2 focus:ring-[var(--accent-dark)]"
+                            value={apiBasedChapter}
+                            onChange={(e) => setApiBasedChapter(e.target.value)}
+                            disabled={
+                              !apiBasedCourse || apiBasedChapters.length === 0
+                            }
+                          >
+                            {apiBasedChapters.map((chapter, index) => (
+                              <option key={index} value={chapter}>
+                                {chapter}
+                              </option>
+                            ))}
+                          </select>
+                        </div>
+                        {quizType === "apiBased" && (
+                          <div className="flex justify-end gap-4">
+                            <button
+                              onClick={handleCancel}
+                              className="px-5 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors"
+                            >
+                              Cancel
+                            </button>
+                            <button
+                              onClick={handleStartQuiz}
+                              className="px-5 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed"
+                              disabled={
+                                !apiBasedApi || !apiBasedCourse || isLoading
+                              }
+                            >
+                              {isLoading ? "Loading..." : "Start Quiz"}
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
         ) : (
-          <p>Loading...</p>
+          <div className="space-y-6">
+            {quizCompleted ? (
+              <div className="text-center">
+                <h3 className="text-2xl font-bold text-[var(--text-primary)] mb-4">
+                  Quiz Completed!
+                </h3>
+                <p className="text-xl text-[var(--text-secondary)] mb-6">
+                  Your Score: {Math.round(quizScore)}%
+                </p>
+                <div className="flex justify-center gap-4">
+                  <button
+                    onClick={handleRestartQuiz}
+                    className="px-5 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors"
+                  >
+                    Restart Quiz
+                  </button>
+                  <button
+                    onClick={handleCancel}
+                    className="px-5 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors"
+                  >
+                    Close
+                  </button>
+                </div>
+              </div>
+            ) : localQuizQuestions.length > 0 ? (
+              <>
+                <div className="flex justify-between items-center">
+                  <h3 className="text-xl font-bold text-[var(--text-primary)]">
+                    Question {localCurrentIndex + 1} of{" "}
+                    {localQuizQuestions.length}
+                  </h3>
+                  <div className="flex items-center gap-4">
+                    <span className="bg-[var(--accent)] text-[var(--text-primary)] px-3 py-1 rounded-full">
+                      Score: {Math.round(quizScore)}%
+                    </span>
+                    <button
+                      onClick={handleCancel}
+                      className="text-[var(--text-primary)] hover:text-red-500 text-2xl"
+                    >
+                      ×
+                    </button>
+                  </div>
+                </div>
+
+                <div className="bg-[var(--primary-bg-start)] p-6 rounded-lg border border-[var(--accent)]">
+                  <p className="text-lg text-[var(--text-primary)] mb-6 font-medium">
+                    {localQuizQuestions[localCurrentIndex]?.question ||
+                      "Loading..."}
+                  </p>
+                  <div className="space-y-4">
+                    {localQuizQuestions[localCurrentIndex]?.options?.map(
+                      (option, index) => (
+                        <div
+                          key={index}
+                          onClick={() => setSelectedOption(index)}
+                          className={`p-4 border rounded-lg cursor-pointer transition-colors ${
+                            selectedOption === index
+                              ? "bg-[var(--accent)] border-[var(--accent-dark)] text-[var(--text-primary)]"
+                              : "border-[var(--accent)] hover:bg-[var(--accent-dark)] text-[var(--text-secondary)]"
+                          }`}
+                        >
+                          {String.fromCharCode(65 + index)}. {option}
+                        </div>
+                      )
+                    )}
+                  </div>
+                </div>
+
+                <div className="flex justify-between items-center">
+                  <button
+                    onClick={handlePreviousQuestion}
+                    className="px-5 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600 transition-colors disabled:bg-gray-300 disabled:cursor-not-allowed"
+                    disabled={localCurrentIndex === 0}
+                  >
+                    Previous
+                  </button>
+                  <button
+                    onClick={
+                      localCurrentIndex < localQuizQuestions.length - 1
+                        ? handleNextQuestion
+                        : handleSubmitQuiz
+                    }
+                    className="px-5 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors disabled:bg-indigo-300 disabled:cursor-not-allowed"
+                    disabled={selectedOption === null}
+                  >
+                    {localCurrentIndex < localQuizQuestions.length - 1
+                      ? "Next"
+                      : "Finish"}
+                  </button>
+                </div>
+              </>
+            ) : (
+              <div className="text-center">
+                <p className="text-lg text-[var(--text-secondary)] mb-4">
+                  {error || "No questions available for this selection."}
+                </p>
+                <div className="flex justify-center gap-4">
+                  <button
+                    onClick={() => {
+                      setShowQuiz(false);
+                      setLocalQuizQuestions([]);
+                      setLocalCurrentIndex(0);
+                    }}
+                    className="px-5 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors"
+                  >
+                    Back to Selection
+                  </button>
+                  <button
+                    onClick={handleCancel}
+                    className="px-5 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors"
+                  >
+                    Close
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
         )}
-        <Button onClick={handleClose} className="mt-4 w-full">
-          Close
-        </Button>
       </div>
     </div>
   );

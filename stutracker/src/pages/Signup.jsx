@@ -109,10 +109,16 @@ const Signup = () => {
       newErrors.email = "This email is already registered";
     }
 
-    // Validate Password
+    // Validate Password using passwordCriteria
     if (!formData.password) {
       newErrors.password = "Password is required";
-    } else if (!passwordRegex.test(formData.password)) {
+    } else if (
+      !passwordCriteria.length ||
+      !passwordCriteria.uppercase ||
+      !passwordCriteria.lowercase ||
+      !passwordCriteria.number ||
+      !passwordCriteria.specialChar
+    ) {
       newErrors.password = "Password must meet all criteria (see below)";
     }
 
