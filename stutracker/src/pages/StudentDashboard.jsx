@@ -329,11 +329,14 @@ const StudentDashboard = () => {
             <div className="flex gap-4 md:gap-6">
               <Button
                 onClick={() => setIsEditingProfile(true)}
-                className="mt-4"
+                className="mt-4 text-xl md:text-2xl shadow-lg transform transition-all duration-300 hover:scale-105"
               >
                 Edit Profile
               </Button>
-              <Button onClick={() => setIsAddGoalOpen(true)} className="mt-4">
+              <Button
+                onClick={() => setIsAddGoalOpen(true)}
+                className="mt-4 text-xl md:text-2xl opacity-100 text-white  bg-[var(--primary-bg-end)] shadow-lg transform transition-all duration-300 hover:scale-105"
+              >
                 Add Goal
               </Button>
             </div>
@@ -621,13 +624,16 @@ const StudentDashboard = () => {
             Your Progress
           </h2>
           <div className="shadow-lg  transform transition-all duration-300 hover:scale-105 max-w-4xl mx-auto bg-[var(--primary-bg-end)] rounded-lg">
-            <div className="flex items-center  justify-end  pl-6 pt-6 pr-6 pb-9">
-              <Button
-                onClick={() => setShowProgress(!showProgress)}
-                className="bg-[var(--accent)] hover:bg-[var(--accent-dark)]"
-              >
-                {showProgress ? "Hide Progress" : "Show Progress"}
-              </Button>
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="text-lg font-semibold p-6">Current Progress</h3>
+              <div className="flex items-center  justify-end  pl-6 pt-6 pr-6 pb-9">
+                <Button
+                  onClick={() => setShowProgress(!showProgress)}
+                  className="bg-[var(--accent)] hover:bg-[var(--accent-dark)]"
+                >
+                  {showProgress ? "Hide" : "Show"}
+                </Button>
+              </div>
             </div>
             {showProgress && (
               <div
@@ -670,16 +676,14 @@ const StudentDashboard = () => {
                         : "bg-[var(--accent)] hover:bg-[var(--accent-dark)]"
                     }`}
                   >
-                    {isCourseSelectionMode
-                      ? "Cancel Selection"
-                      : "Select Courses"}
+                    {isCourseSelectionMode ? "Cancel" : "See More"}
                   </Button>
                 )}
                 <Button
                   onClick={() => setShowCourses(!showCourses)}
                   className="bg-[var(--accent)] hover:bg-[var(--accent-dark)]"
                 >
-                  {showCourses ? "Hide Courses" : "View Courses"}
+                  {showCourses ? "Hide" : "View"}
                 </Button>
               </div>
             </div>
@@ -691,7 +695,7 @@ const StudentDashboard = () => {
                   className="bg-blue-500 hover:bg-blue-600"
                 >
                   {selectedCourses.length === courses.length
-                    ? "Deselect All"
+                    ? "Cancel All"
                     : "Select All"}
                 </Button>
                 {selectedCourses.length > 0 && (
@@ -820,14 +824,14 @@ const StudentDashboard = () => {
                         : "bg-[var(--accent)] hover:bg-[var(--accent-dark)]"
                     }`}
                   >
-                    {isGoalSelectionMode ? "Cancel Selection" : "Select Goals"}
+                    {isGoalSelectionMode ? "Cancel" : "Select"}
                   </Button>
                 )}
                 <Button
                   onClick={() => setShowGoals(!showGoals)}
                   className="bg-[var(--accent)] hover:bg-[var(--accent-dark)]"
                 >
-                  {showGoals ? "Hide Goals" : "View Goals"}
+                  {showGoals ? "Hide" : "View"}
                 </Button>
               </div>
             </div>
