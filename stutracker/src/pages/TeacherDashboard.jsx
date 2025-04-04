@@ -6,7 +6,15 @@ import Footer from "../components/Footer";
 import ProgressBar from "../components/ProgressBar";
 import Button from "../components/Button";
 import TeacherTeachingImage from "/images/dashboard-teacher-teaching.png";
-import { FiCheck, FiTrash2, FiBookOpen, FiSettings } from "react-icons/fi";
+import {
+  FiCheck,
+  FiTrash2,
+  FiBookOpen,
+  FiSettings,
+  FiUserPlus,
+  FiUsers,
+  FiEdit,
+} from "react-icons/fi";
 
 const TeacherDashboard = () => {
   const {
@@ -49,6 +57,16 @@ const TeacherDashboard = () => {
   const [filePreview, setFilePreview] = useState(null);
   const [fileName, setFileName] = useState("");
   const fileInputRef = useRef(null);
+
+  const [isMultiEnrollMode, setIsMultiEnrollMode] = useState(false);
+  const [enrollStudentEmail, setEnrollStudentEmail] = useState("");
+
+  const [isEditProfileOpen, setIsEditProfileOpen] = useState(false);
+  const [editProfileData, setEditProfileData] = useState({
+    firstName: "",
+    lastName: "",
+    email: "",
+  });
 
   const handleFileChange = (e) => {
     const file = e.target.files[0];
@@ -128,6 +146,23 @@ const TeacherDashboard = () => {
     }
   }, [user, navigate, getProgressData, getCourses]);
 
+  useEffect(() => {
+    if (!user) {
+      navigate("/login");
+    } else {
+      const fetchedProgress = getProgressData(user.email, user.userType);
+      const fetchedCourses = getCourses(user.email);
+      setProgressData(fetchedProgress);
+      setCourses(fetchedCourses);
+      // Initialize edit profile data
+      setEditProfileData({
+        firstName: user.firstName || "",
+        lastName: user.lastName || "",
+        email: user.email || "",
+      });
+    }
+  }, [user, navigate, getProgressData, getCourses]);
+
   const handleAddCourse = () => {
     if (newCourseName.trim()) {
       addCourse(newCourseName, user.email);
@@ -195,13 +230,25 @@ const TeacherDashboard = () => {
     );
   };
 
-  const handleDeleteSelected = () => {
+  const handleDeleteSelected = async () => {
     if (selectedCourses.length === 0) return;
-    deleteMultipleCourses(selectedCourses);
-    setSelectedCourses([]);
-    setCourses(getCourses(user.email));
-    if (selectedCourses.includes(selectedCourse)) {
-      setSelectedCourse(null);
+
+    const confirmDelete = window.confirm(
+      `Are you sure you want to delete ${selectedCourses.length} selected course(s)?`
+    );
+
+    if (confirmDelete) {
+      const success = await deleteMultipleCourses(selectedCourses);
+      if (success) {
+        setSelectedCourses([]);
+        setCourses(getCourses(user.email)); // Refresh the course list
+        if (selectedCourses.includes(selectedCourse)) {
+          setSelectedCourse(null); // Clear selection if current course was deleted
+        }
+        alert("Courses deleted successfully");
+      } else {
+        alert("Failed to delete courses");
+      }
     }
   };
 
@@ -219,6 +266,47 @@ const TeacherDashboard = () => {
       email.includes(searchTerm.toLowerCase())
     );
   });
+
+  const handleMultiEnroll = async () => {
+    if (selectedCourses.length === 0 || !enrollStudentEmail.trim()) {
+      alert("Please select at least one course and enter a student email");
+      return;
+    }
+
+    if (!isStudentRegistered(enrollStudentEmail)) {
+      alert(
+        "Student not found. Please ask the student to create an account first."
+      );
+      return;
+    }
+
+    try {
+      const success = await enrollStudentsToCourses(
+        [enrollStudentEmail],
+        selectedCourses
+      );
+
+      if (success) {
+        alert(
+          `Successfully enrolled student to ${selectedCourses.length} course(s)`
+        );
+        setEnrollStudentEmail("");
+        setSelectedCourses([]);
+        setIsMultiEnrollMode(false);
+
+        // Refresh course data
+        setCourses(getCourses(user.email));
+        if (selectedCourse) {
+          setCourseStudents(getStudentsInCourse(selectedCourse));
+        }
+      } else {
+        alert("Failed to enroll student");
+      }
+    } catch (error) {
+      console.error("Enrollment error:", error);
+      alert("An error occurred during enrollment");
+    }
+  };
 
   return (
     <div className="min-h-screen flex flex-col">
@@ -242,7 +330,7 @@ const TeacherDashboard = () => {
             </p>
             <div className="flex gap-4 md:gap-6">
               <Button
-                onClick={() => navigate("/edit-profile")}
+                onClick={() => setIsEditProfileOpen(true)}
                 className="mt-4 text-xl md:text-2xl shadow-lg transform transition-all duration-300 hover:scale-105"
               >
                 Edit Profile
@@ -502,14 +590,15 @@ const TeacherDashboard = () => {
               <h3 className="text-lg font-semibold">Course List</h3>
               <div className="flex gap-2">
                 <Button
-                  onClick={() =>
-                    setIsCourseSelectionMode(!isCourseSelectionMode)
-                  }
-                  className="bg-[var(--accent)] hover:bg-[var(--accent-dark)]"
+                  onClick={() => setIsMultiEnrollMode(!isMultiEnrollMode)}
+                  className={`flex items-center gap-2 ${
+                    isMultiEnrollMode
+                      ? "bg-green-600 hover:bg-green-700"
+                      : "bg-[var(--accent)] hover:bg-[var(--accent-dark)]"
+                  }`}
                 >
-                  {isCourseSelectionMode
-                    ? "Cancel Selection"
-                    : "Select Courses"}
+                  <FiUserPlus />
+                  {isMultiEnrollMode ? "Cancel" : "Multi-Enroll"}
                 </Button>
                 <Button
                   onClick={() => setShowCourses(!showCourses)}
@@ -567,17 +656,28 @@ const TeacherDashboard = () => {
                           </span>
                           <Button
                             onClick={() => navigate(`/course/${course.id}`)}
-                            className="p-2 text-sm flex items-center gap-1"
+                            className="p-2 text-sm flex items-center gap-1 bg-gray-800 hover:bg-blue-600 text-white rounded-md h-8"
                           >
                             <FiBookOpen /> Read
                           </Button>
                           <Button
                             onClick={() => handleSelectCourse(course.id)}
-                            className="p-2 text-sm flex items-center gap-1"
+                            className="p-2 text-sm flex items-center gap-1 hover:bg-blue-600 text-white rounded-md h-8"
                           >
                             <FiSettings /> Manage
                           </Button>
                         </div>
+                      </div>
+                      <div className="flex items-center gap-3">
+                        {isMultiEnrollMode && (
+                          <input
+                            type="checkbox"
+                            checked={selectedCourses.includes(course.id)}
+                            onChange={() => toggleCourseSelection(course.id)}
+                            className="h-5 w-5 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                          />
+                        )}
+                        {/* <span>{course.name}</span> */}
                       </div>
                     </div>
                   ))
@@ -589,6 +689,41 @@ const TeacherDashboard = () => {
               </div>
             )}
           </div>
+
+          {isMultiEnrollMode && (
+            <div className="mb-6 p-4 bg-blue-50 rounded-lg">
+              <h4 className="font-medium mb-3">Multi-Enrollment</h4>
+              <div className="flex flex-col md:flex-row gap-3">
+                <input
+                  type="email"
+                  value={enrollStudentEmail}
+                  onChange={(e) => setEnrollStudentEmail(e.target.value)}
+                  placeholder="Enter student email"
+                  className="flex-1 p-2 border rounded-lg"
+                />
+                <Button
+                  onClick={handleMultiEnroll}
+                  disabled={selectedCourses.length === 0 || !enrollStudentEmail}
+                  className="bg-green-600 hover:bg-green-700 flex items-center gap-2"
+                >
+                  <FiUsers /> Enroll to {selectedCourses.length} Course(s)
+                </Button>
+              </div>
+              {enrollStudentEmail && (
+                <div className="mt-2 text-sm">
+                  {isStudentRegistered(enrollStudentEmail) ? (
+                    <span className="text-green-600">
+                      ✓ Student is registered
+                    </span>
+                  ) : (
+                    <span className="text-red-600">
+                      ✗ Student not found. Please register first
+                    </span>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
         </section>
 
         {/* Student Management Section */}
@@ -740,6 +875,113 @@ const TeacherDashboard = () => {
               )}
             </div>
           </section>
+        )}
+
+        {/* Edit Profile Modal */}
+        {isEditProfileOpen && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+            <div className="bg-[var(--primary-bg-end)] rounded-lg max-w-md w-full p-6 shadow-xl">
+              <div className="flex justify-between items-center mb-4">
+                <h2 className="text-xl font-bold">Edit Profile</h2>
+                <button
+                  onClick={() => setIsEditProfileOpen(false)}
+                  className="text-gray-500 hover:text-gray-700"
+                >
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    className="h-6 w-6"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M6 18L18 6M6 6l12 12"
+                    />
+                  </svg>
+                </button>
+              </div>
+
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    First Name
+                  </label>
+                  <input
+                    type="text"
+                    value={editProfileData.firstName}
+                    onChange={(e) =>
+                      setEditProfileData({
+                        ...editProfileData,
+                        firstName: e.target.value,
+                      })
+                    }
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Last Name
+                  </label>
+                  <input
+                    type="text"
+                    value={editProfileData.lastName}
+                    onChange={(e) =>
+                      setEditProfileData({
+                        ...editProfileData,
+                        lastName: e.target.value,
+                      })
+                    }
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Email
+                  </label>
+                  <input
+                    type="email"
+                    value={editProfileData.email}
+                    onChange={(e) =>
+                      setEditProfileData({
+                        ...editProfileData,
+                        email: e.target.value,
+                      })
+                    }
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                  />
+                </div>
+
+                <div className="flex justify-end gap-3 pt-4">
+                  <button
+                    onClick={() => setIsEditProfileOpen(false)}
+                    className="px-4 py-2 bg-gray-200 hover:bg-gray-300 rounded-md"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={async () => {
+                      try {
+                        await updateProfile(editProfileData);
+                        setIsEditProfileOpen(false);
+                        // Optionally show success message
+                      } catch (error) {
+                        console.error("Failed to update profile:", error);
+                        // Optionally show error message
+                      }
+                    }}
+                    className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-md"
+                  >
+                    Save Changes
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
         )}
       </main>
       <Footer />

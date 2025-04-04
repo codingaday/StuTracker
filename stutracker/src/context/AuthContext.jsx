@@ -691,6 +691,23 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
+  //FOR API INTEGRATION
+  // const updateProfile = async (profileData) => {
+  //   try {
+  //     // If using mock data:
+  //     if (mockUsers) {
+  //       setMockUsers(prev => prev.map(u =>
+  //         u.email === user.email ? { ...u, ...profileData } : u
+  //       ));
+  //     }
+
+  //     return true;
+  //   } catch (error) {
+  //     console.error("Profile update error:", error);
+  //     throw error;
+  //   }
+  // };
+
   const fetchQuizQuestions = async (selection) => {
     setCurrentSelection(selection);
     let questions = [];
@@ -874,6 +891,55 @@ export const AuthProvider = ({ children }) => {
     );
   };
 
+  const deleteMultipleCourses = (courseIds) => {
+    try {
+      // If you're using mock data, update your mockCourses array
+      if (mockCourses) {
+        setMockCourses((prev) =>
+          prev.filter((course) => !courseIds.includes(course.id))
+        );
+      }
+
+      // actual goes API goes here
+
+      // await api.deleteMultipleCourses(courseIds);
+
+      return true;
+    } catch (error) {
+      console.error("Error deleting courses:", error);
+      return false;
+    }
+  };
+
+  const enrollStudentsToCourses = async (studentEmails, courseIds) => {
+    try {
+      // Mock implementation - replace with actual API calls
+      console.log(
+        `Enrolling ${studentEmails.length} students to ${courseIds.length} courses`
+      );
+
+      // If using mock data:
+      if (mockCourses) {
+        setMockCourses((prev) =>
+          prev.map((course) => {
+            if (courseIds.includes(course.id)) {
+              return {
+                ...course,
+                students: [...new Set([...course.students, ...studentEmails])],
+              };
+            }
+            return course;
+          })
+        );
+      }
+
+      return true;
+    } catch (error) {
+      console.error("Enrollment error:", error);
+      return false;
+    }
+  };
+
   return (
     <AuthContext.Provider
       value={{
@@ -922,6 +988,7 @@ export const AuthProvider = ({ children }) => {
         addQuestionsToCourse,
         deleteMultipleCourses,
         getStudentProgressForCourse,
+        enrollStudentsToCourses,
       }}
     >
       {children}
