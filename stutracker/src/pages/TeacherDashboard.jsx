@@ -303,7 +303,6 @@ const TeacherDashboard = () => {
         alert("Failed to enroll student");
       }
     } catch (error) {
-      console.error("Enrollment error:", error);
       alert("An error occurred during enrollment");
     }
   };
@@ -331,13 +330,13 @@ const TeacherDashboard = () => {
             <div className="flex gap-4 md:gap-6">
               <Button
                 onClick={() => setIsEditProfileOpen(true)}
-                className="mt-4 text-xl md:text-2xl shadow-lg transform transition-all duration-300 hover:scale-105"
+                className="mt-4 text-lg md:text-xl shadow-lg transform transition-all duration-300 hover:scale-105"
               >
                 Edit Profile
               </Button>
               <Button
                 onClick={() => setIsAddCourseOpen(true)}
-                className="mt-4 text-xl md:text-2xl opacity-100 text-white bg-[var(--primary-bg-end)] shadow-lg transform transition-all duration-300 hover:scale-105"
+                className="mt-4 text-lg md:text-xl opacity-100 text-white bg-[var(--primary-bg-end)] shadow-lg transform transition-all duration-300 hover:scale-105"
               >
                 Add Course
               </Button>
@@ -554,9 +553,9 @@ const TeacherDashboard = () => {
               <div className="flex items-center justify-end pl-6 pt-6 pr-6 pb-9">
                 <Button
                   onClick={() => setShowProgress(!showProgress)}
-                  className="bg-[var(--accent)] hover:bg-[var(--accent-dark)]"
+                  className="bg-[var(--accent)] hover:bg-cyan-500 w-45"
                 >
-                  {showProgress ? "Hide" : "Show"}
+                  {showProgress ? "Hide" : "View"}
                 </Button>
               </div>
             </div>
@@ -582,16 +581,15 @@ const TeacherDashboard = () => {
 
         {/* Course Management Section */}
         <section className="max-w-4xl mx-auto mb-12">
-          <h2 className="text-xl md:text-2xl font-bold text-center mb-6">
-            Your Courses
-          </h2>
           <div className="bg-[var(--primary-bg-end)] p-6 rounded-lg shadow-lg transform transition-all duration-300 hover:scale-105">
             <div className="flex justify-between items-center mb-4">
-              <h3 className="text-lg font-semibold">Course List</h3>
+              <h2 className="text-xl md:text-2xl font-bold p-6 pl-1.5">
+                Course List
+              </h2>
               <div className="flex gap-2">
                 <Button
                   onClick={() => setIsMultiEnrollMode(!isMultiEnrollMode)}
-                  className={`flex items-center gap-2 ${
+                  className={`flex items-center justify-center gap-2 hover:bg-cyan-500 w-45 ${
                     isMultiEnrollMode
                       ? "bg-green-600 hover:bg-green-700"
                       : "bg-[var(--accent)] hover:bg-[var(--accent-dark)]"
@@ -602,7 +600,7 @@ const TeacherDashboard = () => {
                 </Button>
                 <Button
                   onClick={() => setShowCourses(!showCourses)}
-                  className="bg-[var(--accent)] hover:bg-[var(--accent-dark)]"
+                  className="bg-[var(--accent)] hover:bg-cyan-500 w-45"
                 >
                   {showCourses ? "Hide" : "View"}
                 </Button>
@@ -613,13 +611,13 @@ const TeacherDashboard = () => {
               <div className="flex gap-2 mb-4">
                 <Button
                   onClick={handleDeleteSelected}
-                  className="bg-red-500 hover:bg-red-600 flex items-center gap-2"
+                  className="bg-red-500 hover:bg-cyan-500 w-45 flex items-center gap-2"
                 >
                   <FiTrash2 /> Delete Selected
                 </Button>
                 <Button
                   onClick={handleMarkAsCompleted}
-                  className="bg-green-500 hover:bg-green-600 flex items-center gap-2"
+                  className="bg-red-500 hover:bg-cyan-500 flex items-center gap-2"
                 >
                   <FiCheck /> Mark Completed
                 </Button>
@@ -632,44 +630,14 @@ const TeacherDashboard = () => {
                   courses.map((course) => (
                     <div
                       key={course.id}
-                      className={`p-3 rounded-lg ${
+                      className={`p-3 rounded-lg flex items-center justify-between ${
                         selectedCourse === course.id
                           ? "bg-[var(--accent)] text-white"
                           : "bg-[var(--primary-bg-light)] hover:bg-[var(--accent-light)]"
                       }`}
                     >
-                      <div className="flex justify-between items-center">
-                        <div className="flex items-center gap-3">
-                          {isCourseSelectionMode && (
-                            <input
-                              type="checkbox"
-                              checked={selectedCourses.includes(course.id)}
-                              onChange={() => toggleCourseSelection(course.id)}
-                              className="h-5 w-5 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-                            />
-                          )}
-                          <span>{course.name}</span>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <span className="text-sm">
-                            {course.students.length} students
-                          </span>
-                          <Button
-                            onClick={() => navigate(`/course/${course.id}`)}
-                            className="p-2 text-sm flex items-center gap-1 bg-gray-800 hover:bg-blue-600 text-white rounded-md h-8"
-                          >
-                            <FiBookOpen /> Read
-                          </Button>
-                          <Button
-                            onClick={() => handleSelectCourse(course.id)}
-                            className="p-2 text-sm flex items-center gap-1 hover:bg-blue-600 text-white rounded-md h-8"
-                          >
-                            <FiSettings /> Manage
-                          </Button>
-                        </div>
-                      </div>
                       <div className="flex items-center gap-3">
-                        {isMultiEnrollMode && (
+                        {(isCourseSelectionMode || isMultiEnrollMode) && (
                           <input
                             type="checkbox"
                             checked={selectedCourses.includes(course.id)}
@@ -677,7 +645,26 @@ const TeacherDashboard = () => {
                             className="h-5 w-5 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
                           />
                         )}
-                        {/* <span>{course.name}</span> */}
+                        <span>{course.name}</span>
+                      </div>
+
+                      <div className="flex items-center gap-2">
+                        <span className="text-white text-lg gap-x-1.5 flex items-center mr-2">
+                          <FiUserPlus />
+                          {course.students.length}
+                        </span>
+                        <Button
+                          onClick={() => navigate(`/course/${course.id}`)}
+                          className="p-2 text-sm flex items-center gap-1 bg-gray-800 hover:bg-blue-600 w-38 text-white rounded-md h-8 justify-center"
+                        >
+                          <FiBookOpen /> Read
+                        </Button>
+                        <Button
+                          onClick={() => handleSelectCourse(course.id)}
+                          className="p-2 text-sm flex items-center justify-center gap-1 hover:bg-blue-600 text-white rounded-md h-8 w-38"
+                        >
+                          <FiSettings /> Manage
+                        </Button>
                       </div>
                     </div>
                   ))
@@ -691,7 +678,7 @@ const TeacherDashboard = () => {
           </div>
 
           {isMultiEnrollMode && (
-            <div className="mb-6 p-4 bg-blue-50 rounded-lg">
+            <div className="mb-6 bg-cyan-500 rounded-lg p-6">
               <h4 className="font-medium mb-3">Multi-Enrollment</h4>
               <div className="flex flex-col md:flex-row gap-3">
                 <input
@@ -704,7 +691,7 @@ const TeacherDashboard = () => {
                 <Button
                   onClick={handleMultiEnroll}
                   disabled={selectedCourses.length === 0 || !enrollStudentEmail}
-                  className="bg-green-600 hover:bg-green-700 flex items-center gap-2"
+                  className="bg-red-500 hover:bg-cyan-500 flex items-center justify-center gap-2"
                 >
                   <FiUsers /> Enroll to {selectedCourses.length} Course(s)
                 </Button>
@@ -712,11 +699,11 @@ const TeacherDashboard = () => {
               {enrollStudentEmail && (
                 <div className="mt-2 text-sm">
                   {isStudentRegistered(enrollStudentEmail) ? (
-                    <span className="text-green-600">
+                    <span className="text-green-800">
                       ✓ Student is registered
                     </span>
                   ) : (
-                    <span className="text-red-600">
+                    <span className="text-red-800">
                       ✗ Student not found. Please register first
                     </span>
                   )}
@@ -737,7 +724,7 @@ const TeacherDashboard = () => {
                 </h2>
                 <Button
                   onClick={() => setShowStudents(!showStudents)}
-                  className="bg-[var(--accent)] hover:bg-[var(--accent-dark)]"
+                  className="bg-[var(--accent)] w-45 hover:bg-cyan-500"
                 >
                   {showStudents ? "Hide" : "View"}
                 </Button>
@@ -759,6 +746,7 @@ const TeacherDashboard = () => {
                       />
                       <Button
                         onClick={handleAddStudent}
+                        className="w-45 hover:bg-cyan-500"
                         disabled={
                           !newStudentEmail ||
                           !isStudentRegistered(newStudentEmail)
@@ -819,7 +807,7 @@ const TeacherDashboard = () => {
                                     onClick={() =>
                                       handleViewStudentProgress(student)
                                     }
-                                    className="bg-blue-500 hover:bg-blue-600 text-sm px-3 py-1"
+                                    className="bg-blue-500 hover:bg-blue-600 w-45 text-sm px-3 py-1"
                                   >
                                     View Progress
                                   </Button>
@@ -827,7 +815,7 @@ const TeacherDashboard = () => {
                                     onClick={() =>
                                       handleRemoveStudent(student.email)
                                     }
-                                    className="bg-red-500 hover:bg-red-600 text-sm px-3 py-1"
+                                    className="bg-red-500 text-sm px-3 py-1 w-45 hover:bg-cyan-500"
                                   >
                                     Remove
                                   </Button>
@@ -906,7 +894,7 @@ const TeacherDashboard = () => {
 
               <div className="space-y-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                  <label className="block text-sm font-medium text-white mb-1">
                     First Name
                   </label>
                   <input
@@ -923,7 +911,7 @@ const TeacherDashboard = () => {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                  <label className="block text-sm font-medium text-white mb-1">
                     Last Name
                   </label>
                   <input
@@ -940,7 +928,7 @@ const TeacherDashboard = () => {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                  <label className="block text-sm font-medium text-white disabled">
                     Email
                   </label>
                   <input

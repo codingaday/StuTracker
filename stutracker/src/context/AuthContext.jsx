@@ -618,12 +618,17 @@ export const AuthProvider = ({ children }) => {
       (user) => user.email === teacherEmail && user.userType === "teacher"
     );
 
-  const addGoal = (studentEmail, goalContent) => {
+  const addGoal = (studentEmail, goal) => {
+    // Change parameter name to 'goal'
     setMockGoals((prev) => ({
       ...prev,
       [studentEmail]: [
         ...(prev[studentEmail] || []),
-        { content: goalContent, done: false },
+        {
+          content: goal.content, // Extract string content
+          date: goal.date,
+          done: goal.done || false,
+        },
       ],
     }));
   };
@@ -646,7 +651,14 @@ export const AuthProvider = ({ children }) => {
     }));
   };
 
-  const getGoals = (studentEmail) => mockGoals[studentEmail] || [];
+  const getGoals = (studentEmail) => {
+    const goals = mockGoals[studentEmail] || [];
+    return goals.map((goal) => ({
+      content: typeof goal.content === "string" ? goal.content : "",
+      date: goal.date || "",
+      done: goal.done || false,
+    }));
+  };
 
   const markGoalAsDone = (studentEmail, goalIndex) => {
     setMockGoals((prev) => ({

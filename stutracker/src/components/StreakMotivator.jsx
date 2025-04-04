@@ -6,6 +6,11 @@ const StreakMotivator = ({ streak }) => {
 
   // Animate the streak count on change
   useEffect(() => {
+    if (!Number.isInteger(streak) || streak < 0) {
+      console.warn("Invalid streak value:", streak);
+      return;
+    }
+
     let start = animatedStreak;
     const end = streak;
     if (start === end) return;
@@ -40,6 +45,7 @@ const StreakMotivator = ({ streak }) => {
 
   // Calculate progress ring percentage (capped at 100% for a 30-day streak)
   const progressPercentage = Math.min((streak / 30) * 100, 100);
+  const circumference = 2 * Math.PI * 45; // Circle circumference (r=45)
 
   return (
     <div className="bg-[var(--primary-bg-end)] p-6 rounded-xl shadow-lg text-center transform transition-all duration-300 hover:scale-105">
@@ -49,7 +55,11 @@ const StreakMotivator = ({ streak }) => {
 
       {/* Progress Ring */}
       <div className="relative w-32 h-32 mx-auto mb-4">
-        <svg className="w-full h-full" viewBox="0 0 100 100">
+        <svg
+          className="w-full h-full"
+          viewBox="0 0 100 100"
+          aria-label={`Streak progress: ${streak} days`}
+        >
           {/* Background circle */}
           <circle
             cx="50"
@@ -68,7 +78,9 @@ const StreakMotivator = ({ streak }) => {
             fill="none"
             stroke="var(--accent-dark)"
             strokeWidth="10"
-            strokeDasharray={`${progressPercentage * 2.83}, 283`}
+            strokeDasharray={`${
+              (progressPercentage / 100) * circumference
+            }, ${circumference}`}
             strokeDashoffset="0"
             transform="rotate(-90 50 50)"
             className="transition-all duration-1000 ease-out"
@@ -95,7 +107,6 @@ const StreakMotivator = ({ streak }) => {
   );
 };
 
-// PropTypes for type checking
 StreakMotivator.propTypes = {
   streak: PropTypes.number.isRequired,
 };
