@@ -3,8 +3,8 @@ import { useEffect, useState } from "react";
 import { EditorContent, useEditor } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
 import FontSize from "@tiptap/extension-font-size";
-import Color from "@tiptap/extension-color";
-import { TextStyle } from "@tiptap/extension-text-style";
+// import Color from "@tiptap/extension-color";
+// import { TextStyle } from "@tiptap/extension-text-style";
 import Navbar from "../components/Navbar";
 import Footer from "../components/Footer";
 import ProgressBar from "../components/ProgressBar";
@@ -13,6 +13,8 @@ import QuizModal from "../components/QuizModal";
 import Button from "../components/Button";
 import { useAuth } from "../context/AuthContext";
 import StudentStudyingImage from "/images/dashboard-student-studying.png";
+// import { TextStyle } from "@tiptap/extension-text-style";
+// import { Color } from "@tiptap/extension-color"; // Color comes from extension-colo
 
 const StudentDashboard = () => {
   const {

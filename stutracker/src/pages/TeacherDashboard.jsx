@@ -6,6 +6,7 @@ import Footer from "../components/Footer";
 import ProgressBar from "../components/ProgressBar";
 import Button from "../components/Button";
 import TeacherTeachingImage from "/images/dashboard-teacher-teaching.png";
+import { FiCheck, FiTrash2, FiBookOpen, FiSettings } from "react-icons/fi";
 
 const TeacherDashboard = () => {
   const {
@@ -69,7 +70,6 @@ const TeacherDashboard = () => {
     setSelectedFile(file);
     setFileName(file.name);
 
-    // Create preview for text-based files
     if (
       fileType === "application/json" ||
       fileType === "text/plain" ||
@@ -101,22 +101,15 @@ const TeacherDashboard = () => {
     }
 
     if (selectedFile) {
-      // Here you would typically upload the file to your server
       console.log("Uploading file:", selectedFile);
-
-      // For demo purposes, we'll just add the course
       addCourse(newCourseName, user.email);
-
-      // Process the file content if needed
       if (filePreview) {
         console.log("File content:", filePreview);
       }
     } else {
-      // If no file, just create the course
       addCourse(newCourseName, user.email);
     }
 
-    // Reset form
     setNewCourseName("");
     setSelectedFile(null);
     setFilePreview(null);
@@ -157,7 +150,6 @@ const TeacherDashboard = () => {
   const handleAddStudent = async () => {
     if (!newStudentEmail.trim() || !selectedCourse) return;
 
-    // Check if student exists in the system
     if (!isStudentRegistered(newStudentEmail)) {
       alert(
         "Student not found. Please ask the student to create an account first."
@@ -165,7 +157,6 @@ const TeacherDashboard = () => {
       return;
     }
 
-    // Check if student is already in the course
     if (isStudentInCourse(selectedCourse, newStudentEmail)) {
       alert("This student is already enrolled in the course");
       return;
@@ -173,7 +164,6 @@ const TeacherDashboard = () => {
 
     try {
       await addStudentToCourse(selectedCourse, newStudentEmail);
-      // Refresh the student list
       setCourseStudents(getStudentsInCourse(selectedCourse));
       setNewStudentEmail("");
     } catch (error) {
@@ -187,7 +177,6 @@ const TeacherDashboard = () => {
 
     try {
       await removeStudentFromCourse(selectedCourse, studentEmail);
-      // Refresh the student list
       setCourseStudents(getStudentsInCourse(selectedCourse));
       if (selectedStudent?.email === studentEmail) {
         setSelectedStudent(null);
@@ -196,6 +185,30 @@ const TeacherDashboard = () => {
       console.error("Failed to remove student:", error);
       alert("Failed to remove student. Please try again.");
     }
+  };
+
+  const toggleCourseSelection = (courseId) => {
+    setSelectedCourses((prev) =>
+      prev.includes(courseId)
+        ? prev.filter((id) => id !== courseId)
+        : [...prev, courseId]
+    );
+  };
+
+  const handleDeleteSelected = () => {
+    if (selectedCourses.length === 0) return;
+    deleteMultipleCourses(selectedCourses);
+    setSelectedCourses([]);
+    setCourses(getCourses(user.email));
+    if (selectedCourses.includes(selectedCourse)) {
+      setSelectedCourse(null);
+    }
+  };
+
+  const handleMarkAsCompleted = () => {
+    // Implement your completion logic here
+    alert(`${selectedCourses.length} courses marked as completed`);
+    setSelectedCourses([]);
   };
 
   const filteredStudents = courseStudents.filter((student) => {
@@ -487,13 +500,42 @@ const TeacherDashboard = () => {
           <div className="bg-[var(--primary-bg-end)] p-6 rounded-lg shadow-lg transform transition-all duration-300 hover:scale-105">
             <div className="flex justify-between items-center mb-4">
               <h3 className="text-lg font-semibold">Course List</h3>
-              <Button
-                onClick={() => setShowCourses(!showCourses)}
-                className="bg-[var(--accent)] hover:bg-[var(--accent-dark)]"
-              >
-                {showCourses ? "Hide" : "View"}
-              </Button>
+              <div className="flex gap-2">
+                <Button
+                  onClick={() =>
+                    setIsCourseSelectionMode(!isCourseSelectionMode)
+                  }
+                  className="bg-[var(--accent)] hover:bg-[var(--accent-dark)]"
+                >
+                  {isCourseSelectionMode
+                    ? "Cancel Selection"
+                    : "Select Courses"}
+                </Button>
+                <Button
+                  onClick={() => setShowCourses(!showCourses)}
+                  className="bg-[var(--accent)] hover:bg-[var(--accent-dark)]"
+                >
+                  {showCourses ? "Hide" : "View"}
+                </Button>
+              </div>
             </div>
+
+            {isCourseSelectionMode && selectedCourses.length > 0 && (
+              <div className="flex gap-2 mb-4">
+                <Button
+                  onClick={handleDeleteSelected}
+                  className="bg-red-500 hover:bg-red-600 flex items-center gap-2"
+                >
+                  <FiTrash2 /> Delete Selected
+                </Button>
+                <Button
+                  onClick={handleMarkAsCompleted}
+                  className="bg-green-500 hover:bg-green-600 flex items-center gap-2"
+                >
+                  <FiCheck /> Mark Completed
+                </Button>
+              </div>
+            )}
 
             {showCourses && (
               <div className="space-y-2">
@@ -501,18 +543,41 @@ const TeacherDashboard = () => {
                   courses.map((course) => (
                     <div
                       key={course.id}
-                      className={`p-3 rounded-lg cursor-pointer ${
+                      className={`p-3 rounded-lg ${
                         selectedCourse === course.id
                           ? "bg-[var(--accent)] text-white"
                           : "bg-[var(--primary-bg-light)] hover:bg-[var(--accent-light)]"
                       }`}
-                      onClick={() => handleSelectCourse(course.id)}
                     >
                       <div className="flex justify-between items-center">
-                        <span>{course.name}</span>
-                        <span className="text-sm">
-                          {course.students.length} students
-                        </span>
+                        <div className="flex items-center gap-3">
+                          {isCourseSelectionMode && (
+                            <input
+                              type="checkbox"
+                              checked={selectedCourses.includes(course.id)}
+                              onChange={() => toggleCourseSelection(course.id)}
+                              className="h-5 w-5 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                            />
+                          )}
+                          <span>{course.name}</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <span className="text-sm">
+                            {course.students.length} students
+                          </span>
+                          <Button
+                            onClick={() => navigate(`/course/${course.id}`)}
+                            className="p-2 text-sm flex items-center gap-1"
+                          >
+                            <FiBookOpen /> Read
+                          </Button>
+                          <Button
+                            onClick={() => handleSelectCourse(course.id)}
+                            className="p-2 text-sm flex items-center gap-1"
+                          >
+                            <FiSettings /> Manage
+                          </Button>
+                        </div>
                       </div>
                     </div>
                   ))
