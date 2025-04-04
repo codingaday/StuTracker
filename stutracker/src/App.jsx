@@ -14,6 +14,7 @@ import Signup from "./pages/Signup";
 import Login from "./pages/Login";
 import ProtectedRoute from "./components/ProtectedRoute";
 import DashboardRoute from "./components/DashboardRoute";
+import CoursePage from "./pages/CoursePage";
 
 const App = () => {
   return (
@@ -35,6 +36,7 @@ const App = () => {
             }
           />
 
+          <Route path="/course/:courseId" element={<CoursePage />} />
           {/* Placeholder Routes for Navigation Links */}
           <Route path="/about" element={<About />} />
           <Route path="/services" element={<Services />} />
