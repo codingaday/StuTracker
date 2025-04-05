@@ -487,18 +487,17 @@ const StudentDashboard = () => {
 
         {/* Progress Section */}
         <section className="mb-12 mt-20 ">
-          <h2 className="text-xl md:text-2xl font-bold text-center mb-6">
-            Your Progress
-          </h2>
           <div className="shadow-lg  transform transition-all duration-300 hover:scale-105 max-w-4xl mx-auto bg-[var(--primary-bg-end)] rounded-lg">
             <div className="flex justify-between items-center mb-4">
-              <h3 className="text-lg font-semibold p-6">Current Progress</h3>
+              <h2 className="text-xl md:text-2xl font-bold p-6">
+                Current Progress
+              </h2>
               <div className="flex items-center  justify-end  pl-6 pt-6 pr-6 pb-9">
                 <Button
                   onClick={() => setShowProgress(!showProgress)}
-                  className="bg-[var(--accent)] hover:bg-cyan-500 w-90"
+                  className="bg-[var(--accent)] hover:bg-cyan-500 md:w-90 w-35"
                 >
-                  {showProgress ? "Hide" : "Show"}
+                  {showProgress ? "Hide" : "View"}
                 </Button>
               </div>
             </div>
@@ -527,12 +526,11 @@ const StudentDashboard = () => {
 
         {/* Courses Section */}
         <section className="max-w-4xl mx-auto mb-12">
-          <h2 className="text-xl md:text-2xl font-bold text-center mb-6">
-            Your Courses
-          </h2>
-          <div className="bg-[var(--primary-bg-end)] p-6 rounded-lg shadow-lg  transform transition-all duration-300 hover:scale-105">
+          <div className="bg-[var(--primary-bg-end)] pr-6 rounded-lg shadow-lg  transform transition-all duration-300 hover:scale-105">
             <div className="flex justify-between items-center mb-4">
-              <h3 className="text-lg font-semibold">Current Courses</h3>
+              <h2 className="text-xl md:text-2xl font-bold p-6">
+                Current Courses
+              </h2>
               <div className="flex gap-2">
                 {showCourses && (
                   <Button
@@ -548,7 +546,9 @@ const StudentDashboard = () => {
                 )}
                 <Button
                   onClick={() => setShowCourses(!showCourses)}
-                  className="bg-[var(--accent)]  hover:bg-cyan-500 w-35"
+                  className={`bg-[var(--accent)] hover:bg-cyan-500 w-35  ${
+                    !showCourses ? "md:w-90" : "w-35"
+                  }`}
                 >
                   {showCourses ? "Hide" : "View"}
                 </Button>
@@ -579,7 +579,7 @@ const StudentDashboard = () => {
             {showCourses && (
               <>
                 {courses.length > 0 ? (
-                  <ul className="space-y-2">
+                  <ul className="space-y-2 ml-6">
                     {courses.map((course, index) => (
                       <li
                         key={course.id}
@@ -587,7 +587,7 @@ const StudentDashboard = () => {
                           selectedCourses.includes(index)
                             ? "bg-[var(--accent)] text-[var(--text-primary)]"
                             : "text-[var(--text-secondary)]"
-                        } ${course.done ? "line-through opacity-75" : ""}`}
+                        } ${course.done ? "opacity-75" : ""}`}
                       >
                         <div className="flex items-center gap-2 flex-1">
                           {isCourseSelectionMode && (
@@ -601,7 +601,9 @@ const StudentDashboard = () => {
                           <span
                             onClick={() =>
                               !isCourseSelectionMode &&
-                              handleViewCourseDetails(course)
+                              handleViewCourseDetails(
+                                navigate(`/course/${course.id}`)
+                              )
                             }
                             className={`flex-1 ${
                               !isCourseSelectionMode
@@ -615,7 +617,9 @@ const StudentDashboard = () => {
                         {!isCourseSelectionMode && (
                           <div className="flex gap-2 items-center">
                             <Button
-                              onClick={() => handleMarkCourseDone(course.id)}
+                              onClick={() => {
+                                !course.done && handleMarkCourseDone(course.id);
+                              }}
                               className={` flex justify-center items-center text-sm px-2 py-1 h-8 hover:bg-cyan-500 w-35 ${
                                 course.done
                                   ? "bg-gray-400 cursor-not-allowed"
@@ -623,7 +627,7 @@ const StudentDashboard = () => {
                               }`}
                               disabled={course.done}
                             >
-                              Done
+                              {course.done ? "100%" : "Done"}
                             </Button>
                             <Button
                               onClick={() => navigate(`/course/${course.id}`)}
@@ -681,7 +685,7 @@ const StudentDashboard = () => {
           <div className="bg-[var(--primary-bg-end)] p-6 rounded-lg shadow-lg transform transition-all duration-300 hover:scale-105">
             <div className="flex justify-between items-center mb-4">
               <h3 className="text-lg font-semibold">Current Goals</h3>
-              <div className="flex gap-2">
+              <div className="flex gap-2 mr-2">
                 {showGoals && (
                   <Button
                     onClick={handleToggleGoalSelectionMode}
@@ -694,9 +698,12 @@ const StudentDashboard = () => {
                     {isGoalSelectionMode ? "Cancel" : "Select"}
                   </Button>
                 )}
+
                 <Button
                   onClick={() => setShowGoals(!showGoals)}
-                  className="bg-[var(--accent)] hover:bg-cyan-500 w-35"
+                  className={`bg-[var(--accent)] hover:bg-cyan-500 w-35  ${
+                    !showGoals ? "md:w-90" : "w-35"
+                  }`}
                 >
                   {showGoals ? "Hide" : "View"}
                 </Button>
@@ -761,13 +768,13 @@ const StudentDashboard = () => {
                           </span>
                         </div>
                         {!isGoalSelectionMode && (
-                          <div className="flex gap-2">
+                          <div className="flex gap-2 mr--1">
                             <Button
                               onClick={() => handleMarkGoalAsDone(index)}
-                              className={`text-sm px-2 py-1 ${
+                              className={`text-sm px-2 py-1  w-35  ${
                                 goal.done
                                   ? "bg-gray-400 cursor-not-allowed"
-                                  : "bg-green-500 hover:bg-green-600"
+                                  : "bg-green-500 hover:bg-cyan-500"
                               }`}
                               disabled={goal.done}
                             >
@@ -775,7 +782,7 @@ const StudentDashboard = () => {
                             </Button>
                             <Button
                               onClick={() => handleDeleteGoal(index)}
-                              className="bg-red-500 hover:bg-red-600 text-sm px-2 py-1"
+                              className="bg-red-500 hover:bg-cyan-500 w-35  text-sm px-2 py-1"
                             >
                               Delete
                             </Button>

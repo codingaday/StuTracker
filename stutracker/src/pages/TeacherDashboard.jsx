@@ -35,6 +35,7 @@ const TeacherDashboard = () => {
     isStudentInCourse,
     isStudentRegistered,
     getStudentDetails,
+    enrollStudentsToCourses, // Added from your AuthContext
   } = useAuth();
 
   const navigate = useNavigate();
@@ -52,6 +53,7 @@ const TeacherDashboard = () => {
   const [showCourses, setShowCourses] = useState(true);
   const [showStudents, setShowStudents] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
+  const [suggestedEmails, setSuggestedEmails] = useState([]); // Added for email suggestions
 
   const [selectedFile, setSelectedFile] = useState(null);
   const [filePreview, setFilePreview] = useState(null);
@@ -67,6 +69,27 @@ const TeacherDashboard = () => {
     lastName: "",
     email: "",
   });
+
+  useEffect(() => {
+    if (!user) {
+      navigate("/login");
+    } else {
+      const fetchedProgress = getProgressData(user.email, user.userType);
+      const fetchedCourses = getCourses(user.email);
+      setProgressData(fetchedProgress);
+      setCourses(fetchedCourses);
+      setEditProfileData({
+        firstName: user.firstName || "",
+        lastName: user.lastName || "",
+        email: user.email || "",
+      });
+      // Populate email suggestions
+      const studentEmails = mockUsers
+        .filter((u) => u.userType === "student")
+        .map((u) => u.email);
+      setSuggestedEmails(studentEmails);
+    }
+  }, [user, navigate, getProgressData, getCourses, mockUsers]);
 
   const handleFileChange = (e) => {
     const file = e.target.files[0];
@@ -118,14 +141,12 @@ const TeacherDashboard = () => {
       return;
     }
 
+    addCourse(newCourseName, user.email);
     if (selectedFile) {
       console.log("Uploading file:", selectedFile);
-      addCourse(newCourseName, user.email);
       if (filePreview) {
         console.log("File content:", filePreview);
       }
-    } else {
-      addCourse(newCourseName, user.email);
     }
 
     setNewCourseName("");
@@ -133,35 +154,8 @@ const TeacherDashboard = () => {
     setFilePreview(null);
     setFileName("");
     setIsAddCourseOpen(false);
+    setCourses(getCourses(user.email));
   };
-
-  useEffect(() => {
-    if (!user) {
-      navigate("/login");
-    } else {
-      const fetchedProgress = getProgressData(user.email, user.userType);
-      const fetchedCourses = getCourses(user.email);
-      setProgressData(fetchedProgress);
-      setCourses(fetchedCourses);
-    }
-  }, [user, navigate, getProgressData, getCourses]);
-
-  useEffect(() => {
-    if (!user) {
-      navigate("/login");
-    } else {
-      const fetchedProgress = getProgressData(user.email, user.userType);
-      const fetchedCourses = getCourses(user.email);
-      setProgressData(fetchedProgress);
-      setCourses(fetchedCourses);
-      // Initialize edit profile data
-      setEditProfileData({
-        firstName: user.firstName || "",
-        lastName: user.lastName || "",
-        email: user.email || "",
-      });
-    }
-  }, [user, navigate, getProgressData, getCourses]);
 
   const handleAddCourse = () => {
     if (newCourseName.trim()) {
@@ -176,10 +170,13 @@ const TeacherDashboard = () => {
     setSelectedCourse(courseId);
     setCourseStudents(getStudentsInCourse(courseId));
     setSelectedStudent(null);
+    setShowStudents(true); // Ensure student section opens
   };
 
   const handleViewStudentProgress = (student) => {
-    setSelectedStudent(student);
+    setSelectedStudent(
+      selectedStudent?.email === student.email ? null : student
+    );
   };
 
   const handleAddStudent = async () => {
@@ -241,9 +238,9 @@ const TeacherDashboard = () => {
       const success = await deleteMultipleCourses(selectedCourses);
       if (success) {
         setSelectedCourses([]);
-        setCourses(getCourses(user.email)); // Refresh the course list
+        setCourses(getCourses(user.email));
         if (selectedCourses.includes(selectedCourse)) {
-          setSelectedCourse(null); // Clear selection if current course was deleted
+          setSelectedCourse(null);
         }
         alert("Courses deleted successfully");
       } else {
@@ -253,7 +250,6 @@ const TeacherDashboard = () => {
   };
 
   const handleMarkAsCompleted = () => {
-    // Implement your completion logic here
     alert(`${selectedCourses.length} courses marked as completed`);
     setSelectedCourses([]);
   };
@@ -293,8 +289,6 @@ const TeacherDashboard = () => {
         setEnrollStudentEmail("");
         setSelectedCourses([]);
         setIsMultiEnrollMode(false);
-
-        // Refresh course data
         setCourses(getCourses(user.email));
         if (selectedCourse) {
           setCourseStudents(getStudentsInCourse(selectedCourse));
@@ -305,6 +299,19 @@ const TeacherDashboard = () => {
     } catch (error) {
       alert("An error occurred during enrollment");
     }
+  };
+
+  const handleEmailInputChange = (e) => {
+    const value = e.target.value;
+    setNewStudentEmail(value);
+    const matchingEmails = mockUsers
+      .filter(
+        (u) =>
+          u.userType === "student" &&
+          u.email.toLowerCase().includes(value.toLowerCase())
+      )
+      .map((u) => u.email);
+    setSuggestedEmails(matchingEmails);
   };
 
   return (
@@ -629,7 +636,7 @@ const TeacherDashboard = () => {
                 {courses.length > 0 ? (
                   courses.map((course) => (
                     <div
-                      key={course.id}
+                      key={course.id} // Unique key from course.id
                       className={`p-3 rounded-lg flex items-center justify-between ${
                         selectedCourse === course.id
                           ? "bg-[var(--accent)] text-white"
@@ -740,10 +747,16 @@ const TeacherDashboard = () => {
                       <input
                         type="email"
                         value={newStudentEmail}
-                        onChange={(e) => setNewStudentEmail(e.target.value)}
+                        onChange={handleEmailInputChange}
                         placeholder="Enter student email"
                         className="flex-1 bg-[var(--accent)] text-[var(--text-primary)] p-3 rounded-lg"
+                        list="student-emails" // Added datalist for suggestions
                       />
+                      <datalist id="student-emails">
+                        {suggestedEmails.map((email) => (
+                          <option key={email} value={email} />
+                        ))}
+                      </datalist>
                       <Button
                         onClick={handleAddStudent}
                         className="w-45 hover:bg-cyan-500"
@@ -794,7 +807,7 @@ const TeacherDashboard = () => {
                         <div className="space-y-3">
                           {filteredStudents.map((student) => (
                             <div
-                              key={student.email}
+                              key={student.email} // Unique key from student.email
                               className="bg-[var(--primary-bg-light)] p-3 rounded-lg"
                             >
                               <div className="flex justify-between items-center">
@@ -809,7 +822,9 @@ const TeacherDashboard = () => {
                                     }
                                     className="bg-blue-500 hover:bg-blue-600 w-45 text-sm px-3 py-1"
                                   >
-                                    View Progress
+                                    {selectedStudent?.email === student.email
+                                      ? "Hide Progress"
+                                      : "View Progress"}
                                   </Button>
                                   <Button
                                     onClick={() =>
@@ -954,12 +969,14 @@ const TeacherDashboard = () => {
                   <button
                     onClick={async () => {
                       try {
-                        await updateProfile(editProfileData);
+                        await updateProfile(
+                          editProfileData.email,
+                          editProfileData
+                        );
                         setIsEditProfileOpen(false);
-                        // Optionally show success message
                       } catch (error) {
                         console.error("Failed to update profile:", error);
-                        // Optionally show error message
+                        alert("Failed to update profile. Please try again.");
                       }
                     }}
                     className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-md"
