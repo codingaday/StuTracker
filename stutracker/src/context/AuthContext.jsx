@@ -703,23 +703,6 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
-  //FOR API INTEGRATION
-  // const updateProfile = async (profileData) => {
-  //   try {
-  //     // If using mock data:
-  //     if (mockUsers) {
-  //       setMockUsers(prev => prev.map(u =>
-  //         u.email === user.email ? { ...u, ...profileData } : u
-  //       ));
-  //     }
-
-  //     return true;
-  //   } catch (error) {
-  //     console.error("Profile update error:", error);
-  //     throw error;
-  //   }
-  // };
-
   const fetchQuizQuestions = async (selection) => {
     setCurrentSelection(selection);
     let questions = [];

@@ -35,7 +35,7 @@ const TeacherDashboard = () => {
     isStudentInCourse,
     isStudentRegistered,
     getStudentDetails,
-    enrollStudentsToCourses, // Added from your AuthContext
+    enrollStudentsToCourses,
   } = useAuth();
 
   const navigate = useNavigate();
@@ -53,7 +53,9 @@ const TeacherDashboard = () => {
   const [showCourses, setShowCourses] = useState(true);
   const [showStudents, setShowStudents] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
-  const [suggestedEmails, setSuggestedEmails] = useState([]); // Added for email suggestions
+  const [suggestedEmails, setSuggestedEmails] = useState([]);
+  const [selectedStudents, setSelectedStudents] = useState([]); // New state for multi-student selection
+  const [isStudentSelectionMode, setIsStudentSelectionMode] = useState(false); // New state for student selection mode
 
   const [selectedFile, setSelectedFile] = useState(null);
   const [filePreview, setFilePreview] = useState(null);
@@ -61,7 +63,7 @@ const TeacherDashboard = () => {
   const fileInputRef = useRef(null);
 
   const [isMultiEnrollMode, setIsMultiEnrollMode] = useState(false);
-  const [enrollStudentEmail, setEnrollStudentEmail] = useState("");
+  const [enrollStudentEmails, setEnrollStudentEmails] = useState("");
 
   const [isEditProfileOpen, setIsEditProfileOpen] = useState(false);
   const [editProfileData, setEditProfileData] = useState({
@@ -83,7 +85,6 @@ const TeacherDashboard = () => {
         lastName: user.lastName || "",
         email: user.email || "",
       });
-      // Populate email suggestions
       const studentEmails = mockUsers
         .filter((u) => u.userType === "student")
         .map((u) => u.email);
@@ -170,7 +171,9 @@ const TeacherDashboard = () => {
     setSelectedCourse(courseId);
     setCourseStudents(getStudentsInCourse(courseId));
     setSelectedStudent(null);
-    setShowStudents(true); // Ensure student section opens
+    setSelectedStudents([]); // Reset selected students when switching courses
+    setIsStudentSelectionMode(false); // Exit selection mode
+    setShowStudents(true);
   };
 
   const handleViewStudentProgress = (student) => {
@@ -213,6 +216,9 @@ const TeacherDashboard = () => {
       if (selectedStudent?.email === studentEmail) {
         setSelectedStudent(null);
       }
+      setSelectedStudents((prev) =>
+        prev.filter((email) => email !== studentEmail)
+      ); // Remove from selection
     } catch (error) {
       console.error("Failed to remove student:", error);
       alert("Failed to remove student. Please try again.");
@@ -227,11 +233,19 @@ const TeacherDashboard = () => {
     );
   };
 
-  const handleDeleteSelected = async () => {
+  const toggleStudentSelection = (studentEmail) => {
+    setSelectedStudents((prev) =>
+      prev.includes(studentEmail)
+        ? prev.filter((email) => email !== studentEmail)
+        : [...prev, studentEmail]
+    );
+  };
+
+  const handleDeleteSelectedCourses = async () => {
     if (selectedCourses.length === 0) return;
 
     const confirmDelete = window.confirm(
-      `Are you sure you want to delete ${selectedCourses.length} selected course(s)?`
+      `Are you sure you want to delete ${selectedCourses.length} selected course(s)? This will remove all associated data.`
     );
 
     if (confirmDelete) {
@@ -239,12 +253,62 @@ const TeacherDashboard = () => {
       if (success) {
         setSelectedCourses([]);
         setCourses(getCourses(user.email));
+        setProgressData(getProgressData(user.email, user.userType));
         if (selectedCourses.includes(selectedCourse)) {
           setSelectedCourse(null);
+          setCourseStudents([]);
+          setSelectedStudents([]);
         }
         alert("Courses deleted successfully");
       } else {
         alert("Failed to delete courses");
+      }
+    }
+  };
+
+  const handleDeleteSingleCourse = async (courseId) => {
+    const confirmDelete = window.confirm(
+      "Are you sure you want to delete this course? This will remove it and all associated data."
+    );
+    if (confirmDelete) {
+      const success = await deleteCourse(courseId);
+      if (success) {
+        setCourses(getCourses(user.email));
+        setProgressData(getProgressData(user.email, user.userType));
+        if (selectedCourse === courseId) {
+          setSelectedCourse(null);
+          setCourseStudents([]);
+          setSelectedStudents([]);
+        }
+        alert("Course deleted successfully");
+      } else {
+        alert("Failed to delete course");
+      }
+    }
+  };
+
+  const handleDeleteSelectedStudents = async () => {
+    if (selectedStudents.length === 0 || !selectedCourse) return;
+
+    const confirmDelete = window.confirm(
+      `Are you sure you want to remove ${selectedStudents.length} selected student(s) from this course?`
+    );
+
+    if (confirmDelete) {
+      try {
+        await Promise.all(
+          selectedStudents.map((email) =>
+            removeStudentFromCourse(selectedCourse, email)
+          )
+        );
+        setCourseStudents(getStudentsInCourse(selectedCourse));
+        setSelectedStudents([]);
+        setSelectedStudent(null);
+        setIsStudentSelectionMode(false);
+        alert("Students removed successfully");
+      } catch (error) {
+        console.error("Failed to remove students:", error);
+        alert("Failed to remove students. Please try again.");
       }
     }
   };
@@ -264,29 +328,41 @@ const TeacherDashboard = () => {
   });
 
   const handleMultiEnroll = async () => {
-    if (selectedCourses.length === 0 || !enrollStudentEmail.trim()) {
-      alert("Please select at least one course and enter a student email");
+    if (selectedCourses.length === 0 || !enrollStudentEmails.trim()) {
+      alert("Please select at least one course and enter student email(s)");
       return;
     }
 
-    if (!isStudentRegistered(enrollStudentEmail)) {
+    const emailList = enrollStudentEmails
+      .split(",")
+      .map((email) => email.trim())
+      .filter((email) => email.length > 0);
+
+    if (emailList.length === 0) {
+      alert("Please enter valid student emails");
+      return;
+    }
+
+    const invalidEmails = emailList.filter(
+      (email) => !isStudentRegistered(email)
+    );
+    if (invalidEmails.length > 0) {
       alert(
-        "Student not found. Please ask the student to create an account first."
+        `The following emails are not registered: ${invalidEmails.join(
+          ", "
+        )}. Please ask them to create accounts first.`
       );
       return;
     }
 
     try {
-      const success = await enrollStudentsToCourses(
-        [enrollStudentEmail],
-        selectedCourses
-      );
+      const success = await enrollStudentsToCourses(emailList, selectedCourses);
 
       if (success) {
         alert(
-          `Successfully enrolled student to ${selectedCourses.length} course(s)`
+          `Successfully enrolled ${emailList.length} student(s) to ${selectedCourses.length} course(s)`
         );
-        setEnrollStudentEmail("");
+        setEnrollStudentEmails("");
         setSelectedCourses([]);
         setIsMultiEnrollMode(false);
         setCourses(getCourses(user.email));
@@ -294,9 +370,10 @@ const TeacherDashboard = () => {
           setCourseStudents(getStudentsInCourse(selectedCourse));
         }
       } else {
-        alert("Failed to enroll student");
+        alert("Failed to enroll students");
       }
     } catch (error) {
+      console.error("Enrollment error:", error);
       alert("An error occurred during enrollment");
     }
   };
@@ -312,6 +389,10 @@ const TeacherDashboard = () => {
       )
       .map((u) => u.email);
     setSuggestedEmails(matchingEmails);
+  };
+
+  const handleMultiEmailInputChange = (e) => {
+    setEnrollStudentEmails(e.target.value);
   };
 
   return (
@@ -617,7 +698,7 @@ const TeacherDashboard = () => {
             {isCourseSelectionMode && selectedCourses.length > 0 && (
               <div className="flex gap-2 mb-4">
                 <Button
-                  onClick={handleDeleteSelected}
+                  onClick={handleDeleteSelectedCourses}
                   className="bg-red-500 hover:bg-cyan-500 w-45 flex items-center gap-2"
                 >
                   <FiTrash2 /> Delete Selected
@@ -636,7 +717,7 @@ const TeacherDashboard = () => {
                 {courses.length > 0 ? (
                   courses.map((course) => (
                     <div
-                      key={course.id} // Unique key from course.id
+                      key={course.id}
                       className={`p-3 rounded-lg flex items-center justify-between ${
                         selectedCourse === course.id
                           ? "bg-[var(--accent)] text-white"
@@ -672,6 +753,12 @@ const TeacherDashboard = () => {
                         >
                           <FiSettings /> Manage
                         </Button>
+                        <Button
+                          onClick={() => handleDeleteSingleCourse(course.id)}
+                          className="p-2 text-sm flex items-center gap-1 bg-red-500 hover:bg-red-600 text-white rounded-md h-8 w-38"
+                        >
+                          <FiTrash2 /> Delete
+                        </Button>
                       </div>
                     </div>
                   ))
@@ -689,31 +776,41 @@ const TeacherDashboard = () => {
               <h4 className="font-medium mb-3">Multi-Enrollment</h4>
               <div className="flex flex-col md:flex-row gap-3">
                 <input
-                  type="email"
-                  value={enrollStudentEmail}
-                  onChange={(e) => setEnrollStudentEmail(e.target.value)}
-                  placeholder="Enter student email"
+                  type="text"
+                  value={enrollStudentEmails}
+                  onChange={handleMultiEmailInputChange}
+                  placeholder="Enter student emails (e.g., email1@example.com, email2@example.com)"
                   className="flex-1 p-2 border rounded-lg"
                 />
                 <Button
                   onClick={handleMultiEnroll}
-                  disabled={selectedCourses.length === 0 || !enrollStudentEmail}
+                  disabled={
+                    selectedCourses.length === 0 || !enrollStudentEmails.trim()
+                  }
                   className="bg-red-500 hover:bg-cyan-500 flex items-center justify-center gap-2"
                 >
                   <FiUsers /> Enroll to {selectedCourses.length} Course(s)
                 </Button>
               </div>
-              {enrollStudentEmail && (
+              {enrollStudentEmails && (
                 <div className="mt-2 text-sm">
-                  {isStudentRegistered(enrollStudentEmail) ? (
-                    <span className="text-green-800">
-                      ✓ Student is registered
-                    </span>
-                  ) : (
-                    <span className="text-red-800">
-                      ✗ Student not found. Please register first
-                    </span>
-                  )}
+                  {enrollStudentEmails
+                    .split(",")
+                    .map((email) => email.trim())
+                    .filter((email) => email.length > 0)
+                    .map((email) => (
+                      <div key={email}>
+                        {isStudentRegistered(email) ? (
+                          <span className="text-green-800">
+                            ✓ {email} is registered
+                          </span>
+                        ) : (
+                          <span className="text-red-800">
+                            ✗ {email} not found. Please register first
+                          </span>
+                        )}
+                      </div>
+                    ))}
                 </div>
               )}
             </div>
@@ -729,13 +826,39 @@ const TeacherDashboard = () => {
                   Students in{" "}
                   {courses.find((c) => c.id === selectedCourse)?.name}
                 </h2>
-                <Button
-                  onClick={() => setShowStudents(!showStudents)}
-                  className="bg-[var(--accent)] w-45 hover:bg-cyan-500"
-                >
-                  {showStudents ? "Hide" : "View"}
-                </Button>
+                <div className="flex gap-2">
+                  <Button
+                    onClick={() =>
+                      setIsStudentSelectionMode(!isStudentSelectionMode)
+                    }
+                    className={`flex items-center justify-center gap-2 w-45 ${
+                      isStudentSelectionMode
+                        ? "bg-green-600 hover:bg-green-700"
+                        : "bg-[var(--accent)] hover:bg-cyan-500"
+                    }`}
+                  >
+                    <FiUsers />
+                    {isStudentSelectionMode ? "Cancel" : "Select Students"}
+                  </Button>
+                  <Button
+                    onClick={() => setShowStudents(!showStudents)}
+                    className="bg-[var(--accent)] w-45 hover:bg-cyan-500"
+                  >
+                    {showStudents ? "Hide" : "View"}
+                  </Button>
+                </div>
               </div>
+
+              {isStudentSelectionMode && selectedStudents.length > 0 && (
+                <div className="flex gap-2 mb-4">
+                  <Button
+                    onClick={handleDeleteSelectedStudents}
+                    className="bg-red-500 hover:bg-cyan-500 w-45 flex items-center gap-2"
+                  >
+                    <FiTrash2 /> Remove Selected
+                  </Button>
+                </div>
+              )}
 
               {showStudents && (
                 <>
@@ -750,7 +873,7 @@ const TeacherDashboard = () => {
                         onChange={handleEmailInputChange}
                         placeholder="Enter student email"
                         className="flex-1 bg-[var(--accent)] text-[var(--text-primary)] p-3 rounded-lg"
-                        list="student-emails" // Added datalist for suggestions
+                        list="student-emails"
                       />
                       <datalist id="student-emails">
                         {suggestedEmails.map((email) => (
@@ -807,63 +930,47 @@ const TeacherDashboard = () => {
                         <div className="space-y-3">
                           {filteredStudents.map((student) => (
                             <div
-                              key={student.email} // Unique key from student.email
-                              className="bg-[var(--primary-bg-light)] p-3 rounded-lg"
+                              key={student.email}
+                              className="bg-[var(--primary-bg-light)] p-3 rounded-lg flex items-center justify-between"
                             >
-                              <div className="flex justify-between items-center">
+                              <div className="flex items-center gap-3">
+                                {isStudentSelectionMode && (
+                                  <input
+                                    type="checkbox"
+                                    checked={selectedStudents.includes(
+                                      student.email
+                                    )}
+                                    onChange={() =>
+                                      toggleStudentSelection(student.email)
+                                    }
+                                    className="h-5 w-5 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                                  />
+                                )}
                                 <span>
                                   {student.firstName} {student.lastName} (
                                   {student.email})
                                 </span>
-                                <div className="flex gap-2">
-                                  <Button
-                                    onClick={() =>
-                                      handleViewStudentProgress(student)
-                                    }
-                                    className="bg-blue-500 hover:bg-blue-600 w-45 text-sm px-3 py-1"
-                                  >
-                                    {selectedStudent?.email === student.email
-                                      ? "Hide Progress"
-                                      : "View Progress"}
-                                  </Button>
-                                  <Button
-                                    onClick={() =>
-                                      handleRemoveStudent(student.email)
-                                    }
-                                    className="bg-red-500 text-sm px-3 py-1 w-45 hover:bg-cyan-500"
-                                  >
-                                    Remove
-                                  </Button>
-                                </div>
                               </div>
-
-                              {selectedStudent?.email === student.email && (
-                                <div className="mt-3 pl-4 border-l-4 border-[var(--accent)]">
-                                  <h4 className="font-medium mb-2">
-                                    Progress:
-                                  </h4>
-                                  {getStudentProgressForCourse(
-                                    student.email,
-                                    selectedCourse
-                                  )?.length > 0 ? (
-                                    getStudentProgressForCourse(
-                                      student.email,
-                                      selectedCourse
-                                    ).map((progress, idx) => (
-                                      <ProgressBar
-                                        key={idx}
-                                        subject={progress.subject}
-                                        percentage={progress.percentage}
-                                        className="mb-2"
-                                      />
-                                    ))
-                                  ) : (
-                                    <p className="text-[var(--text-secondary)]">
-                                      No progress data available
-                                    </p>
-                                  )}
-                                </div>
-                              )}
+                              <div className="flex gap-2">
+                                <Button
+                                  onClick={() =>
+                                    handleViewStudentProgress(student)
+                                  }
+                                  className="bg-blue-500 hover:bg-blue-600 w-45 text-sm px-3 py-1"
+                                >
+                                  {selectedStudent?.email === student.email
+                                    ? "Hide Progress"
+                                    : "View Progress"}
+                                </Button>
+                                <Button
+                                  onClick={() =>
+                                    handleRemoveStudent(student.email)
+                                  }
+                                  className="bg-red-500 text-sm px-3 py-1 w-45 hover:bg-cyan-500"
+                                >
+                                  Remove
+                                </Button>
+                              </div>
                             </div>
                           ))}
                         </div>
