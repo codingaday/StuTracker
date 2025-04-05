@@ -41,6 +41,7 @@ const TeacherDashboard = () => {
   const navigate = useNavigate();
   const [progressData, setProgressData] = useState([]);
   const [courses, setCourses] = useState([]);
+  const [completedCourses, setCompletedCourses] = useState([]); // New state for completed courses
   const [newCourseName, setNewCourseName] = useState("");
   const [selectedCourse, setSelectedCourse] = useState(null);
   const [courseStudents, setCourseStudents] = useState([]);
@@ -52,25 +53,24 @@ const TeacherDashboard = () => {
   const [showProgress, setShowProgress] = useState(true);
   const [showCourses, setShowCourses] = useState(true);
   const [showStudents, setShowStudents] = useState(true);
+  const [showOverallStatus, setShowOverallStatus] = useState(true); // New state for toggling status section
   const [searchTerm, setSearchTerm] = useState("");
   const [suggestedEmails, setSuggestedEmails] = useState([]);
-  const [selectedStudents, setSelectedStudents] = useState([]); // New state for multi-student selection
-  const [isStudentSelectionMode, setIsStudentSelectionMode] = useState(false); // New state for student selection mode
-
+  const [selectedStudents, setSelectedStudents] = useState([]);
+  const [isStudentSelectionMode, setIsStudentSelectionMode] = useState(false);
   const [selectedFile, setSelectedFile] = useState(null);
   const [filePreview, setFilePreview] = useState(null);
   const [fileName, setFileName] = useState("");
   const fileInputRef = useRef(null);
-
   const [isMultiEnrollMode, setIsMultiEnrollMode] = useState(false);
   const [enrollStudentEmails, setEnrollStudentEmails] = useState("");
-
   const [isEditProfileOpen, setIsEditProfileOpen] = useState(false);
   const [editProfileData, setEditProfileData] = useState({
     firstName: "",
     lastName: "",
     email: "",
   });
+  const [expandedStudentEmail, setExpandedStudentEmail] = useState(null);
 
   useEffect(() => {
     if (!user) {
@@ -171,9 +171,10 @@ const TeacherDashboard = () => {
     setSelectedCourse(courseId);
     setCourseStudents(getStudentsInCourse(courseId));
     setSelectedStudent(null);
-    setSelectedStudents([]); // Reset selected students when switching courses
-    setIsStudentSelectionMode(false); // Exit selection mode
+    setSelectedStudents([]);
+    setIsStudentSelectionMode(false);
     setShowStudents(true);
+    setExpandedStudentEmail(null);
   };
 
   const handleViewStudentProgress = (student) => {
@@ -218,7 +219,10 @@ const TeacherDashboard = () => {
       }
       setSelectedStudents((prev) =>
         prev.filter((email) => email !== studentEmail)
-      ); // Remove from selection
+      );
+      if (expandedStudentEmail === studentEmail) {
+        setExpandedStudentEmail(null);
+      }
     } catch (error) {
       console.error("Failed to remove student:", error);
       alert("Failed to remove student. Please try again.");
@@ -249,19 +253,26 @@ const TeacherDashboard = () => {
     );
 
     if (confirmDelete) {
-      const success = await deleteMultipleCourses(selectedCourses);
-      if (success) {
-        setSelectedCourses([]);
-        setCourses(getCourses(user.email));
+      try {
+        await deleteMultipleCourses(selectedCourses);
+        const newCourses = getCourses(user.email);
+        setCourses(newCourses);
+        setCompletedCourses((prev) =>
+          prev.filter((course) => !selectedCourses.includes(course.id))
+        );
         setProgressData(getProgressData(user.email, user.userType));
         if (selectedCourses.includes(selectedCourse)) {
           setSelectedCourse(null);
           setCourseStudents([]);
           setSelectedStudents([]);
+          setExpandedStudentEmail(null);
         }
+        setSelectedCourses([]);
+        setIsMultiEnrollMode(false);
         alert("Courses deleted successfully");
-      } else {
-        alert("Failed to delete courses");
+      } catch (error) {
+        console.error("Error deleting courses:", error);
+        alert("Failed to delete courses due to an error. Please try again.");
       }
     }
   };
@@ -271,18 +282,24 @@ const TeacherDashboard = () => {
       "Are you sure you want to delete this course? This will remove it and all associated data."
     );
     if (confirmDelete) {
-      const success = await deleteCourse(courseId);
-      if (success) {
-        setCourses(getCourses(user.email));
+      try {
+        await deleteCourse(courseId);
+        const newCourses = getCourses(user.email);
+        setCourses(newCourses);
+        setCompletedCourses((prev) =>
+          prev.filter((course) => course.id !== courseId)
+        );
         setProgressData(getProgressData(user.email, user.userType));
         if (selectedCourse === courseId) {
           setSelectedCourse(null);
           setCourseStudents([]);
           setSelectedStudents([]);
+          setExpandedStudentEmail(null);
         }
         alert("Course deleted successfully");
-      } else {
-        alert("Failed to delete course");
+      } catch (error) {
+        console.error("Error deleting course:", error);
+        alert("Failed to delete course due to an error. Please try again.");
       }
     }
   };
@@ -301,21 +318,36 @@ const TeacherDashboard = () => {
             removeStudentFromCourse(selectedCourse, email)
           )
         );
-        setCourseStudents(getStudentsInCourse(selectedCourse));
+        const newStudents = getStudentsInCourse(selectedCourse);
+        setCourseStudents(newStudents);
         setSelectedStudents([]);
         setSelectedStudent(null);
         setIsStudentSelectionMode(false);
+        if (
+          expandedStudentEmail &&
+          selectedStudents.includes(expandedStudentEmail)
+        ) {
+          setExpandedStudentEmail(null);
+        }
         alert("Students removed successfully");
       } catch (error) {
         console.error("Failed to remove students:", error);
-        alert("Failed to remove students. Please try again.");
+        alert("Failed to remove students due to an error. Please try again.");
       }
     }
   };
 
   const handleMarkAsCompleted = () => {
+    const coursesToMark = courses.filter((course) =>
+      selectedCourses.includes(course.id)
+    );
+    setCompletedCourses((prev) => [
+      ...prev.filter((c) => !selectedCourses.includes(c.id)), // Remove duplicates
+      ...coursesToMark,
+    ]);
     alert(`${selectedCourses.length} courses marked as completed`);
     setSelectedCourses([]);
+    setIsMultiEnrollMode(false);
   };
 
   const filteredStudents = courseStudents.filter((student) => {
@@ -357,7 +389,6 @@ const TeacherDashboard = () => {
 
     try {
       const success = await enrollStudentsToCourses(emailList, selectedCourses);
-
       if (success) {
         alert(
           `Successfully enrolled ${emailList.length} student(s) to ${selectedCourses.length} course(s)`
@@ -394,6 +425,58 @@ const TeacherDashboard = () => {
   const handleMultiEmailInputChange = (e) => {
     setEnrollStudentEmails(e.target.value);
   };
+
+  const handleToggleStudentSelectionMode = () => {
+    setIsStudentSelectionMode((prev) => !prev);
+    if (isStudentSelectionMode) {
+      setSelectedStudents([]);
+    }
+  };
+
+  const handleToggleCourseSelectionMode = () => {
+    setIsMultiEnrollMode((prev) => !prev);
+    if (isMultiEnrollMode) {
+      setSelectedCourses([]);
+    }
+  };
+
+  const getStudentCourses = (studentEmail) => {
+    return courses.filter((course) => course.students.includes(studentEmail));
+  };
+
+  const toggleStudentDetails = (studentEmail) => {
+    setExpandedStudentEmail(
+      expandedStudentEmail === studentEmail ? null : studentEmail
+    );
+    setSelectedStudent(null);
+  };
+
+  // Calculate Overall Courses Status
+  const getOverallCoursesStatus = () => {
+    const totalCourses = courses.length;
+    const totalStudentsEnrolled = new Set(
+      courses.flatMap((course) => course.students)
+    ).size;
+    const studentsFinishedPerCourse = completedCourses.map((course) => ({
+      ...course,
+      finishedCount: course.students.length, // Assume all enrolled students finish when course is completed
+    }));
+    const totalStudentsFinished = new Set(
+      studentsFinishedPerCourse.flatMap((course) => course.students)
+    ).size;
+    const averageCompletionRate =
+      totalCourses > 0 ? (completedCourses.length / totalCourses) * 100 : 0;
+
+    return {
+      totalCourses,
+      totalStudentsEnrolled,
+      studentsFinishedPerCourse,
+      totalStudentsFinished,
+      averageCompletionRate: averageCompletionRate.toFixed(2),
+    };
+  };
+
+  const overallStatus = getOverallCoursesStatus();
 
   return (
     <div className="min-h-screen flex flex-col">
@@ -631,8 +714,83 @@ const TeacherDashboard = () => {
           </div>
         )}
 
-        {/* Class Progress Section */}
+        {/* Overall Courses Status Section */}
         <section className="mb-12 mt-20">
+          <div className="shadow-lg transform transition-all duration-300 hover:scale-105 max-w-4xl mx-auto bg-[var(--primary-bg-end)] rounded-lg">
+            <div className="flex justify-between items-center mb-4">
+              <h2 className="text-xl md:text-2xl font-bold p-6">
+                Overall Courses Status
+              </h2>
+              <div className="flex items-center justify-end pl-6 pt-6 pr-6 pb-9">
+                <Button
+                  onClick={() => setShowOverallStatus(!showOverallStatus)}
+                  className="bg-[var(--accent)] hover:bg-cyan-500 w-45"
+                >
+                  {showOverallStatus ? "Hide" : "View"}
+                </Button>
+              </div>
+            </div>
+            {showOverallStatus && (
+              <div className="p-6">
+                <div className="mb-6">
+                  <h3 className="text-lg font-semibold mb-2">Summary</h3>
+                  <p>Total Courses Added: {overallStatus.totalCourses}</p>
+                  <p>
+                    Total Students Enrolled (Unique):{" "}
+                    {overallStatus.totalStudentsEnrolled}
+                  </p>
+                  <p>
+                    Total Students Finished Courses (Unique):{" "}
+                    {overallStatus.totalStudentsFinished}
+                  </p>
+                  <p>
+                    Average Completion Rate:{" "}
+                    {overallStatus.averageCompletionRate}%
+                  </p>
+                  <p>Completed Courses: {completedCourses.length}</p>
+                </div>
+                <div>
+                  <h3 className="text-lg font-semibold mb-2">Course Details</h3>
+                  {courses.length > 0 ? (
+                    <div className="space-y-3">
+                      {courses.map((course) => {
+                        const isCompleted = completedCourses.some(
+                          (c) => c.id === course.id
+                        );
+                        const finishedCount = isCompleted
+                          ? course.students.length
+                          : 0;
+                        return (
+                          <div
+                            key={course.id}
+                            className="bg-[var(--primary-bg-light)] p-3 rounded-lg"
+                          >
+                            <p>
+                              <strong>{course.name}</strong>
+                            </p>
+                            <p>Students Enrolled: {course.students.length}</p>
+                            <p>Students Finished: {finishedCount}</p>
+                            <p>
+                              Status:{" "}
+                              {isCompleted ? "Completed" : "In Progress"}
+                            </p>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  ) : (
+                    <p className="text-center text-[var(--text-secondary)]">
+                      No courses available.
+                    </p>
+                  )}
+                </div>
+              </div>
+            )}
+          </div>
+        </section>
+
+        {/* Class Progress Section */}
+        <section className="mb-12">
           <div className="shadow-lg transform transition-all duration-300 hover:scale-105 max-w-4xl mx-auto bg-[var(--primary-bg-end)] rounded-lg">
             <div className="flex justify-between items-center mb-4">
               <h2 className="text-xl md:text-2xl font-bold p-6">
@@ -676,7 +834,7 @@ const TeacherDashboard = () => {
               </h2>
               <div className="flex gap-2">
                 <Button
-                  onClick={() => setIsMultiEnrollMode(!isMultiEnrollMode)}
+                  onClick={handleToggleCourseSelectionMode}
                   className={`flex items-center justify-center gap-2 hover:bg-cyan-500 w-45 ${
                     isMultiEnrollMode
                       ? "bg-green-600 hover:bg-green-700"
@@ -684,7 +842,7 @@ const TeacherDashboard = () => {
                   }`}
                 >
                   <FiUserPlus />
-                  {isMultiEnrollMode ? "Cancel" : "Multi-Enroll"}
+                  {isMultiEnrollMode ? "Cancel" : "Select Courses"}
                 </Button>
                 <Button
                   onClick={() => setShowCourses(!showCourses)}
@@ -695,7 +853,7 @@ const TeacherDashboard = () => {
               </div>
             </div>
 
-            {isCourseSelectionMode && selectedCourses.length > 0 && (
+            {isMultiEnrollMode && selectedCourses.length > 0 && (
               <div className="flex gap-2 mb-4">
                 <Button
                   onClick={handleDeleteSelectedCourses}
@@ -705,7 +863,7 @@ const TeacherDashboard = () => {
                 </Button>
                 <Button
                   onClick={handleMarkAsCompleted}
-                  className="bg-red-500 hover:bg-cyan-500 flex items-center gap-2"
+                  className="bg-green-500 hover:bg-green-600 flex items-center gap-2"
                 >
                   <FiCheck /> Mark Completed
                 </Button>
@@ -725,7 +883,7 @@ const TeacherDashboard = () => {
                       }`}
                     >
                       <div className="flex items-center gap-3">
-                        {(isCourseSelectionMode || isMultiEnrollMode) && (
+                        {isMultiEnrollMode && (
                           <input
                             type="checkbox"
                             checked={selectedCourses.includes(course.id)}
@@ -828,9 +986,7 @@ const TeacherDashboard = () => {
                 </h2>
                 <div className="flex gap-2">
                   <Button
-                    onClick={() =>
-                      setIsStudentSelectionMode(!isStudentSelectionMode)
-                    }
+                    onClick={handleToggleStudentSelectionMode}
                     className={`flex items-center justify-center gap-2 w-45 ${
                       isStudentSelectionMode
                         ? "bg-green-600 hover:bg-green-700"
@@ -848,17 +1004,6 @@ const TeacherDashboard = () => {
                   </Button>
                 </div>
               </div>
-
-              {isStudentSelectionMode && selectedStudents.length > 0 && (
-                <div className="flex gap-2 mb-4">
-                  <Button
-                    onClick={handleDeleteSelectedStudents}
-                    className="bg-red-500 hover:bg-cyan-500 w-45 flex items-center gap-2"
-                  >
-                    <FiTrash2 /> Remove Selected
-                  </Button>
-                </div>
-              )}
 
               {showStudents && (
                 <>
@@ -913,9 +1058,20 @@ const TeacherDashboard = () => {
                   </div>
 
                   <div>
-                    <h3 className="text-lg font-semibold mb-4">
-                      Enrolled Students
-                    </h3>
+                    <div className="flex justify-between items-center mb-4">
+                      <h3 className="text-lg font-semibold">
+                        Enrolled Students
+                      </h3>
+                      {isStudentSelectionMode &&
+                        selectedStudents.length > 0 && (
+                          <Button
+                            onClick={handleDeleteSelectedStudents}
+                            className="bg-red-500 hover:bg-cyan-500 flex items-center gap-2 text-sm px-3 py-1"
+                          >
+                            <FiTrash2 /> Remove Selected
+                          </Button>
+                        )}
+                    </div>
                     {courseStudents.length > 0 ? (
                       <>
                         <div className="mb-4">
@@ -928,51 +1084,172 @@ const TeacherDashboard = () => {
                           />
                         </div>
                         <div className="space-y-3">
-                          {filteredStudents.map((student) => (
-                            <div
-                              key={student.email}
-                              className="bg-[var(--primary-bg-light)] p-3 rounded-lg flex items-center justify-between"
-                            >
-                              <div className="flex items-center gap-3">
-                                {isStudentSelectionMode && (
-                                  <input
-                                    type="checkbox"
-                                    checked={selectedStudents.includes(
-                                      student.email
+                          {filteredStudents.map((student) => {
+                            const studentCourses = getStudentCourses(
+                              student.email
+                            );
+                            const showCoursesLink = studentCourses.length > 1;
+
+                            return (
+                              <div
+                                key={student.email}
+                                className="bg-[var(--primary-bg-light)] p-3 rounded-lg"
+                              >
+                                <div className="flex justify-between items-center">
+                                  <div className="flex items-center gap-3">
+                                    {isStudentSelectionMode && (
+                                      <input
+                                        type="checkbox"
+                                        checked={selectedStudents.includes(
+                                          student.email
+                                        )}
+                                        onChange={() =>
+                                          toggleStudentSelection(student.email)
+                                        }
+                                        className="h-5 w-5 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                                      />
                                     )}
-                                    onChange={() =>
-                                      toggleStudentSelection(student.email)
-                                    }
-                                    className="h-5 w-5 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-                                  />
+                                    <span>
+                                      {student.firstName} {student.lastName} (
+                                      {student.email})
+                                      {showCoursesLink && (
+                                        <>
+                                          {" -- "}
+                                          <button
+                                            onClick={() =>
+                                              toggleStudentDetails(
+                                                student.email
+                                              )
+                                            }
+                                            className="text-blue-500 hover:underline"
+                                          >
+                                            courses
+                                          </button>
+                                        </>
+                                      )}
+                                    </span>
+                                  </div>
+                                  <div className="flex gap-2">
+                                    <Button
+                                      onClick={() =>
+                                        handleViewStudentProgress(student)
+                                      }
+                                      className="bg-blue-500 hover:bg-blue-600 w-45 text-sm px-3 py-1"
+                                    >
+                                      {selectedStudent?.email === student.email
+                                        ? "Hide Progress"
+                                        : "View Progress"}
+                                    </Button>
+                                    <Button
+                                      onClick={() =>
+                                        handleRemoveStudent(student.email)
+                                      }
+                                      className="bg-red-500 text-sm px-3 py-1 w-45 hover:bg-cyan-500"
+                                    >
+                                      Remove
+                                    </Button>
+                                  </div>
+                                </div>
+                                {selectedStudent?.email === student.email && (
+                                  <div className="mt-3 pl-4 border-l-4 border-[var(--accent)]">
+                                    <h4 className="font-medium mb-2">
+                                      Progress:
+                                    </h4>
+                                    {getStudentProgressForCourse(
+                                      student.email,
+                                      selectedCourse
+                                    )?.length > 0 ? (
+                                      getStudentProgressForCourse(
+                                        student.email,
+                                        selectedCourse
+                                      ).map((progress, idx) => (
+                                        <ProgressBar
+                                          key={idx}
+                                          subject={progress.subject}
+                                          percentage={progress.percentage}
+                                          className="mb-2"
+                                        />
+                                      ))
+                                    ) : (
+                                      <p className="text-[var(--text-secondary)]">
+                                        No progress data available
+                                      </p>
+                                    )}
+                                  </div>
                                 )}
-                                <span>
-                                  {student.firstName} {student.lastName} (
-                                  {student.email})
-                                </span>
+                                {expandedStudentEmail === student.email && (
+                                  <div className="mt-3 pl-4 border-l-4 border-[var(--accent)]">
+                                    <h4 className="font-medium mb-2">
+                                      Student: {student.firstName}{" "}
+                                      {student.lastName}
+                                    </h4>
+                                    <div className="space-y-2">
+                                      {studentCourses.map((course) => (
+                                        <div
+                                          key={course.id}
+                                          className="flex justify-between items-center"
+                                        >
+                                          <span>{course.name}</span>
+                                          <Button
+                                            onClick={() =>
+                                              navigate(`/course/${course.id}`)
+                                            }
+                                            className="p-2 text-sm flex items-center gap-1 bg-gray-800 hover:bg-blue-600 text-white rounded-md h-8"
+                                          >
+                                            <FiBookOpen /> Read
+                                          </Button>
+                                        </div>
+                                      ))}
+                                    </div>
+                                    <Button
+                                      onClick={() =>
+                                        handleViewStudentProgress(student)
+                                      }
+                                      className="mt-2 bg-blue-500 hover:bg-blue-600 text-sm px-3 py-1"
+                                    >
+                                      {selectedStudent?.email === student.email
+                                        ? "Hide Progress"
+                                        : "View Progress"}
+                                    </Button>
+                                    {selectedStudent?.email ===
+                                      student.email && (
+                                      <div className="mt-2">
+                                        {studentCourses.map((course) => (
+                                          <div key={course.id} className="mb-2">
+                                            <h5 className="font-medium">
+                                              {course.name} Progress:
+                                            </h5>
+                                            {getStudentProgressForCourse(
+                                              student.email,
+                                              course.id
+                                            )?.length > 0 ? (
+                                              getStudentProgressForCourse(
+                                                student.email,
+                                                course.id
+                                              ).map((progress, idx) => (
+                                                <ProgressBar
+                                                  key={idx}
+                                                  subject={progress.subject}
+                                                  percentage={
+                                                    progress.percentage
+                                                  }
+                                                  className="mb-2"
+                                                />
+                                              ))
+                                            ) : (
+                                              <p className="text-[var(--text-secondary)]">
+                                                No progress data available
+                                              </p>
+                                            )}
+                                          </div>
+                                        ))}
+                                      </div>
+                                    )}
+                                  </div>
+                                )}
                               </div>
-                              <div className="flex gap-2">
-                                <Button
-                                  onClick={() =>
-                                    handleViewStudentProgress(student)
-                                  }
-                                  className="bg-blue-500 hover:bg-blue-600 w-45 text-sm px-3 py-1"
-                                >
-                                  {selectedStudent?.email === student.email
-                                    ? "Hide Progress"
-                                    : "View Progress"}
-                                </Button>
-                                <Button
-                                  onClick={() =>
-                                    handleRemoveStudent(student.email)
-                                  }
-                                  className="bg-red-500 text-sm px-3 py-1 w-45 hover:bg-cyan-500"
-                                >
-                                  Remove
-                                </Button>
-                              </div>
-                            </div>
-                          ))}
+                            );
+                          })}
                         </div>
                       </>
                     ) : (
@@ -1054,7 +1331,7 @@ const TeacherDashboard = () => {
                     Email
                   </label>
                   <input
-                    type="email"
+                    type="text"
                     value={editProfileData.email}
                     onChange={(e) =>
                       setEditProfileData({
