@@ -16,6 +16,12 @@ import ProtectedRoute from "./components/ProtectedRoute";
 import DashboardRoute from "./components/DashboardRoute";
 import CoursePage from "./pages/CoursePage";
 
+import StudentsList from "./components/StudentsList";
+import CoursesList from "./components/CoursesList";
+import DeletedStudents from "./components/DeletedStudents";
+import DeletedCourses from "./components/DeletedCourses";
+import StudentCourses from "./components/StudentCourses";
+
 const App = () => {
   return (
     <AuthProvider>
@@ -36,6 +42,13 @@ const App = () => {
             }
           />
 
+          <Route path="/students-list" element={<StudentsList />} />
+          <Route path="/courses-list" element={<CoursesList />} />
+          <Route path="/deleted-students-list" element={<DeletedStudents />} />
+          <Route path="/deleted-courses-list" element={<DeletedCourses />} />
+          <Route path="/student-courses/:email" element={<StudentCourses />} />
+
+          {/* Protected Routes for Teachers */}
           <Route path="/course/:courseId" element={<CoursePage />} />
           {/* Placeholder Routes for Navigation Links */}
           <Route path="/about" element={<About />} />

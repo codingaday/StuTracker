@@ -1,12 +1,5 @@
-import { useState } from "react";
 import { useDropzone } from "react-dropzone";
-import {
-  FiDownload,
-  FiX,
-  FiFile,
-  FiImage,
-  FiUploadCloud,
-} from "react-icons/fi";
+import { FiDownload, FiX, FiFile, FiUploadCloud } from "react-icons/fi";
 
 const FileViewer = ({ file, onClose, onFileChange }) => {
   const { getRootProps, getInputProps, isDragActive } = useDropzone({

@@ -7,13 +7,17 @@ import ProgressBar from "../components/ProgressBar";
 import Button from "../components/Button";
 import TeacherTeachingImage from "/images/dashboard-teacher-teaching.png";
 import {
-  FiCheck,
   FiTrash2,
   FiBookOpen,
   FiSettings,
   FiUserPlus,
-  FiUsers,
+  FiCopy,
+  FiClipboard,
   FiEdit,
+  FiCheck,
+  FiSearch,
+  FiDownload,
+  FiUpload,
 } from "react-icons/fi";
 
 const TeacherDashboard = () => {
@@ -31,46 +35,57 @@ const TeacherDashboard = () => {
     updateProfile,
     mockCourses,
     mockUsers,
-    studentExists,
-    isStudentInCourse,
     isStudentRegistered,
-    getStudentDetails,
     enrollStudentsToCourses,
   } = useAuth();
 
   const navigate = useNavigate();
   const [progressData, setProgressData] = useState([]);
   const [courses, setCourses] = useState([]);
-  const [completedCourses, setCompletedCourses] = useState([]); // New state for completed courses
   const [newCourseName, setNewCourseName] = useState("");
   const [selectedCourse, setSelectedCourse] = useState(null);
   const [courseStudents, setCourseStudents] = useState([]);
   const [selectedStudent, setSelectedStudent] = useState(null);
   const [newStudentEmail, setNewStudentEmail] = useState("");
   const [isAddCourseOpen, setIsAddCourseOpen] = useState(false);
-  const [isCourseSelectionMode, setIsCourseSelectionMode] = useState(false);
+  const [isCourseActionsOpen, setIsCourseActionsOpen] = useState(false);
+  const [isStudentActionsOpen, setIsStudentActionsOpen] = useState(false);
   const [selectedCourses, setSelectedCourses] = useState([]);
   const [showProgress, setShowProgress] = useState(true);
   const [showCourses, setShowCourses] = useState(true);
   const [showStudents, setShowStudents] = useState(true);
-  const [showOverallStatus, setShowOverallStatus] = useState(true); // New state for toggling status section
+  const [showOverallStatus, setShowOverallStatus] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [suggestedEmails, setSuggestedEmails] = useState([]);
   const [selectedStudents, setSelectedStudents] = useState([]);
-  const [isStudentSelectionMode, setIsStudentSelectionMode] = useState(false);
+  const [selectedCourseAction, setSelectedCourseAction] = useState(null);
+  const [selectedStudentAction, setSelectedStudentAction] = useState(null);
   const [selectedFile, setSelectedFile] = useState(null);
   const [filePreview, setFilePreview] = useState(null);
   const [fileName, setFileName] = useState("");
   const fileInputRef = useRef(null);
-  const [isMultiEnrollMode, setIsMultiEnrollMode] = useState(false);
-  const [enrollStudentEmails, setEnrollStudentEmails] = useState("");
+  const [multiEnrollEmails, setMultiEnrollEmails] = useState("");
   const [isEditProfileOpen, setIsEditProfileOpen] = useState(false);
   const [editProfileData, setEditProfileData] = useState({
     firstName: "",
     lastName: "",
     email: "",
+    phone: "",
+    bio: "",
   });
   const [expandedStudentEmail, setExpandedStudentEmail] = useState(null);
+  const [statusFilter, setStatusFilter] = useState("all");
+  const [copiedCourseName, setCopiedCourseName] = useState("");
+  const [copiedStudentEmails, setCopiedStudentEmails] = useState("");
+  const [editingCourseId, setEditingCourseId] = useState(null);
+  const [editedCourseName, setEditedCourseName] = useState("");
+  const [sortOrderStudents, setSortOrderStudents] = useState("asc");
+  const [sortOrderCourses, setSortOrderCourses] = useState("asc");
+  const [overallSortOrderStudents, setOverallSortOrderStudents] =
+    useState("asc");
+  const [overallSortOrderCourses, setOverallSortOrderCourses] = useState("asc");
+  const [isExporting, setIsExporting] = useState(false);
+  const [studentFilter, setStudentFilter] = useState("all");
 
   useEffect(() => {
     if (!user) {
@@ -84,6 +99,8 @@ const TeacherDashboard = () => {
         firstName: user.firstName || "",
         lastName: user.lastName || "",
         email: user.email || "",
+        phone: user.phone || "",
+        bio: user.bio || "",
       });
       const studentEmails = mockUsers
         .filter((u) => u.userType === "student")
@@ -102,28 +119,25 @@ const TeacherDashboard = () => {
       "text/plain",
       "text/csv",
     ];
-    const fileType = file.type;
-
-    if (!validTypes.includes(fileType)) {
+    const maxSize = 10 * 1024 * 1024; // 10MB
+    if (!validTypes.includes(file.type)) {
       alert("Please upload a valid file type (PDF, JSON, TXT, or CSV)");
+      return;
+    }
+    if (file.size > maxSize) {
+      alert("File size exceeds 10MB limit");
       return;
     }
 
     setSelectedFile(file);
     setFileName(file.name);
 
-    if (
-      fileType === "application/json" ||
-      fileType === "text/plain" ||
-      fileType === "text/csv"
-    ) {
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        setFilePreview(e.target.result);
-      };
-      reader.readAsText(file);
-    } else if (fileType === "application/pdf") {
+    if (file.type === "application/pdf") {
       setFilePreview(URL.createObjectURL(file));
+    } else {
+      const reader = new FileReader();
+      reader.onload = (e) => setFilePreview(e.target.result);
+      reader.readAsText(file);
     }
   };
 
@@ -131,9 +145,7 @@ const TeacherDashboard = () => {
     setSelectedFile(null);
     setFilePreview(null);
     setFileName("");
-    if (fileInputRef.current) {
-      fileInputRef.current.value = "";
-    }
+    if (fileInputRef.current) fileInputRef.current.value = "";
   };
 
   const handleUploadCourse = () => {
@@ -145,9 +157,7 @@ const TeacherDashboard = () => {
     addCourse(newCourseName, user.email);
     if (selectedFile) {
       console.log("Uploading file:", selectedFile);
-      if (filePreview) {
-        console.log("File content:", filePreview);
-      }
+      console.log("File content preview:", filePreview);
     }
 
     setNewCourseName("");
@@ -158,21 +168,11 @@ const TeacherDashboard = () => {
     setCourses(getCourses(user.email));
   };
 
-  const handleAddCourse = () => {
-    if (newCourseName.trim()) {
-      addCourse(newCourseName, user.email);
-      setNewCourseName("");
-      setCourses(getCourses(user.email));
-      setIsAddCourseOpen(false);
-    }
-  };
-
   const handleSelectCourse = (courseId) => {
     setSelectedCourse(courseId);
     setCourseStudents(getStudentsInCourse(courseId));
     setSelectedStudent(null);
     setSelectedStudents([]);
-    setIsStudentSelectionMode(false);
     setShowStudents(true);
     setExpandedStudentEmail(null);
   };
@@ -187,14 +187,7 @@ const TeacherDashboard = () => {
     if (!newStudentEmail.trim() || !selectedCourse) return;
 
     if (!isStudentRegistered(newStudentEmail)) {
-      alert(
-        "Student not found. Please ask the student to create an account first."
-      );
-      return;
-    }
-
-    if (isStudentInCourse(selectedCourse, newStudentEmail)) {
-      alert("This student is already enrolled in the course");
+      alert("Student not found. Please ask them to create an account first.");
       return;
     }
 
@@ -214,15 +207,11 @@ const TeacherDashboard = () => {
     try {
       await removeStudentFromCourse(selectedCourse, studentEmail);
       setCourseStudents(getStudentsInCourse(selectedCourse));
-      if (selectedStudent?.email === studentEmail) {
-        setSelectedStudent(null);
-      }
+      if (selectedStudent?.email === studentEmail) setSelectedStudent(null);
       setSelectedStudents((prev) =>
         prev.filter((email) => email !== studentEmail)
       );
-      if (expandedStudentEmail === studentEmail) {
-        setExpandedStudentEmail(null);
-      }
+      if (expandedStudentEmail === studentEmail) setExpandedStudentEmail(null);
     } catch (error) {
       console.error("Failed to remove student:", error);
       alert("Failed to remove student. Please try again.");
@@ -245,21 +234,37 @@ const TeacherDashboard = () => {
     );
   };
 
+  const handleSelectAllCourses = () => {
+    const allCourseIds = courses.map((course) => course.id);
+    setSelectedCourses(
+      selectedCourses.length === allCourseIds.length ? [] : allCourseIds
+    );
+    setSelectedCourseAction("selectallcourses");
+    setIsCourseActionsOpen(false);
+  };
+
+  const handleSelectAllStudents = () => {
+    const allStudentEmails = courseStudents.map((student) => student.email);
+    setSelectedStudents(
+      selectedStudents.length === allStudentEmails.length
+        ? []
+        : allStudentEmails
+    );
+    setSelectedStudentAction("selectallstudents");
+    setIsStudentActionsOpen(false);
+  };
+
   const handleDeleteSelectedCourses = async () => {
     if (selectedCourses.length === 0) return;
 
-    const confirmDelete = window.confirm(
-      `Are you sure you want to delete ${selectedCourses.length} selected course(s)? This will remove all associated data.`
-    );
-
-    if (confirmDelete) {
+    if (
+      window.confirm(
+        `Are you sure you want to delete ${selectedCourses.length} selected course(s)?`
+      )
+    ) {
       try {
         await deleteMultipleCourses(selectedCourses);
-        const newCourses = getCourses(user.email);
-        setCourses(newCourses);
-        setCompletedCourses((prev) =>
-          prev.filter((course) => !selectedCourses.includes(course.id))
-        );
+        setCourses(getCourses(user.email));
         setProgressData(getProgressData(user.email, user.userType));
         if (selectedCourses.includes(selectedCourse)) {
           setSelectedCourse(null);
@@ -268,27 +273,20 @@ const TeacherDashboard = () => {
           setExpandedStudentEmail(null);
         }
         setSelectedCourses([]);
-        setIsMultiEnrollMode(false);
-        alert("Courses deleted successfully");
+        setSelectedCourseAction("deleteselectedcourses");
+        setIsCourseActionsOpen(false);
       } catch (error) {
         console.error("Error deleting courses:", error);
-        alert("Failed to delete courses due to an error. Please try again.");
+        alert("Failed to delete courses. Please try again.");
       }
     }
   };
 
   const handleDeleteSingleCourse = async (courseId) => {
-    const confirmDelete = window.confirm(
-      "Are you sure you want to delete this course? This will remove it and all associated data."
-    );
-    if (confirmDelete) {
+    if (window.confirm("Are you sure you want to delete this course?")) {
       try {
         await deleteCourse(courseId);
-        const newCourses = getCourses(user.email);
-        setCourses(newCourses);
-        setCompletedCourses((prev) =>
-          prev.filter((course) => course.id !== courseId)
-        );
+        setCourses(getCourses(user.email));
         setProgressData(getProgressData(user.email, user.userType));
         if (selectedCourse === courseId) {
           setSelectedCourse(null);
@@ -296,10 +294,11 @@ const TeacherDashboard = () => {
           setSelectedStudents([]);
           setExpandedStudentEmail(null);
         }
-        alert("Course deleted successfully");
+        setSelectedCourseAction("deletecourse");
+        setIsCourseActionsOpen(false);
       } catch (error) {
         console.error("Error deleting course:", error);
-        alert("Failed to delete course due to an error. Please try again.");
+        alert("Failed to delete course. Please try again.");
       }
     }
   };
@@ -307,182 +306,495 @@ const TeacherDashboard = () => {
   const handleDeleteSelectedStudents = async () => {
     if (selectedStudents.length === 0 || !selectedCourse) return;
 
-    const confirmDelete = window.confirm(
-      `Are you sure you want to remove ${selectedStudents.length} selected student(s) from this course?`
-    );
-
-    if (confirmDelete) {
+    if (
+      window.confirm(
+        `Are you sure you want to remove ${selectedStudents.length} selected student(s)?`
+      )
+    ) {
       try {
         await Promise.all(
           selectedStudents.map((email) =>
             removeStudentFromCourse(selectedCourse, email)
           )
         );
-        const newStudents = getStudentsInCourse(selectedCourse);
-        setCourseStudents(newStudents);
+        setCourseStudents(getStudentsInCourse(selectedCourse));
         setSelectedStudents([]);
         setSelectedStudent(null);
-        setIsStudentSelectionMode(false);
-        if (
-          expandedStudentEmail &&
-          selectedStudents.includes(expandedStudentEmail)
-        ) {
-          setExpandedStudentEmail(null);
-        }
-        alert("Students removed successfully");
+        setSelectedStudentAction("deleteselectedstudents");
+        setIsStudentActionsOpen(false);
       } catch (error) {
         console.error("Failed to remove students:", error);
-        alert("Failed to remove students due to an error. Please try again.");
+        alert("Failed to remove students. Please try again.");
       }
     }
   };
 
-  const handleMarkAsCompleted = () => {
-    const coursesToMark = courses.filter((course) =>
-      selectedCourses.includes(course.id)
+  const filteredStudents = courseStudents
+    .filter((student) =>
+      `${student.firstName} ${student.lastName} ${student.email}`
+        .toLowerCase()
+        .includes(searchTerm.toLowerCase())
+    )
+    .sort((a, b) =>
+      sortOrderStudents === "asc"
+        ? a.lastName.localeCompare(b.lastName)
+        : b.lastName.localeCompare(a.lastName)
     );
-    setCompletedCourses((prev) => [
-      ...prev.filter((c) => !selectedCourses.includes(c.id)), // Remove duplicates
-      ...coursesToMark,
-    ]);
-    alert(`${selectedCourses.length} courses marked as completed`);
-    setSelectedCourses([]);
-    setIsMultiEnrollMode(false);
-  };
-
-  const filteredStudents = courseStudents.filter((student) => {
-    const fullName = `${student.firstName} ${student.lastName}`.toLowerCase();
-    const email = student.email.toLowerCase();
-    return (
-      fullName.includes(searchTerm.toLowerCase()) ||
-      email.includes(searchTerm.toLowerCase())
-    );
-  });
 
   const handleMultiEnroll = async () => {
-    if (selectedCourses.length === 0 || !enrollStudentEmails.trim()) {
-      alert("Please select at least one course and enter student email(s)");
+    if (selectedCourses.length === 0 || !multiEnrollEmails.trim()) {
+      alert("Please select at least one course and enter student emails");
       return;
     }
 
-    const emailList = enrollStudentEmails
+    const emails = multiEnrollEmails
       .split(",")
       .map((email) => email.trim())
-      .filter((email) => email.length > 0);
+      .filter((email) => email);
+    const invalidEmails = emails.filter((email) => !isStudentRegistered(email));
 
-    if (emailList.length === 0) {
-      alert("Please enter valid student emails");
-      return;
-    }
-
-    const invalidEmails = emailList.filter(
-      (email) => !isStudentRegistered(email)
-    );
     if (invalidEmails.length > 0) {
       alert(
-        `The following emails are not registered: ${invalidEmails.join(
+        `These emails are not registered: ${invalidEmails.join(
           ", "
-        )}. Please ask them to create accounts first.`
+        )}. Please ask them to sign up.`
       );
       return;
     }
 
     try {
-      const success = await enrollStudentsToCourses(emailList, selectedCourses);
-      if (success) {
-        alert(
-          `Successfully enrolled ${emailList.length} student(s) to ${selectedCourses.length} course(s)`
-        );
-        setEnrollStudentEmails("");
-        setSelectedCourses([]);
-        setIsMultiEnrollMode(false);
-        setCourses(getCourses(user.email));
-        if (selectedCourse) {
-          setCourseStudents(getStudentsInCourse(selectedCourse));
-        }
-      } else {
-        alert("Failed to enroll students");
-      }
+      await enrollStudentsToCourses(emails, selectedCourses);
+      setMultiEnrollEmails("");
+      setSelectedCourses([]);
+      setCourses(getCourses(user.email));
+      if (selectedCourse)
+        setCourseStudents(getStudentsInCourse(selectedCourse));
+      setSelectedCourseAction("multienroll");
+      setIsCourseActionsOpen(false);
     } catch (error) {
       console.error("Enrollment error:", error);
-      alert("An error occurred during enrollment");
+      alert("Failed to enroll students. Please try again.");
     }
   };
 
   const handleEmailInputChange = (e) => {
-    const value = e.target.value;
-    setNewStudentEmail(value);
-    const matchingEmails = mockUsers
-      .filter(
-        (u) =>
-          u.userType === "student" &&
-          u.email.toLowerCase().includes(value.toLowerCase())
-      )
-      .map((u) => u.email);
-    setSuggestedEmails(matchingEmails);
+    setNewStudentEmail(e.target.value);
   };
 
-  const handleMultiEmailInputChange = (e) => {
-    setEnrollStudentEmails(e.target.value);
+  const handlePasteStudentEmail = () => {
+    if (copiedStudentEmails)
+      setNewStudentEmail(copiedStudentEmails.split(", ")[0]);
   };
 
-  const handleToggleStudentSelectionMode = () => {
-    setIsStudentSelectionMode((prev) => !prev);
-    if (isStudentSelectionMode) {
-      setSelectedStudents([]);
-    }
-  };
+  const getStudentCourses = (studentEmail) =>
+    courses
+      .filter((course) => course.students.includes(studentEmail))
+      .sort((a, b) =>
+        sortOrderCourses === "asc"
+          ? a.name.localeCompare(b.name)
+          : b.name.localeCompare(a.name)
+      );
 
-  const handleToggleCourseSelectionMode = () => {
-    setIsMultiEnrollMode((prev) => !prev);
-    if (isMultiEnrollMode) {
-      setSelectedCourses([]);
-    }
-  };
-
-  const getStudentCourses = (studentEmail) => {
-    return courses.filter((course) => course.students.includes(studentEmail));
-  };
-
-  const toggleStudentDetails = (studentEmail) => {
-    setExpandedStudentEmail(
-      expandedStudentEmail === studentEmail ? null : studentEmail
-    );
-    setSelectedStudent(null);
-  };
-
-  // Calculate Overall Courses Status
   const getOverallCoursesStatus = () => {
     const totalCourses = courses.length;
+    const completedCourses = courses.filter((course) => course.done).length;
     const totalStudentsEnrolled = new Set(
       courses.flatMap((course) => course.students)
     ).size;
-    const studentsFinishedPerCourse = completedCourses.map((course) => ({
-      ...course,
-      finishedCount: course.students.length, // Assume all enrolled students finish when course is completed
-    }));
-    const totalStudentsFinished = new Set(
-      studentsFinishedPerCourse.flatMap((course) => course.students)
+    const completionRate =
+      totalCourses > 0 ? (completedCourses / totalCourses) * 100 : 0;
+
+    const totalCurrentStudents = totalStudentsEnrolled;
+    const allStudentsEver = new Set(
+      mockCourses.flatMap((course) => course.students)
     ).size;
-    const averageCompletionRate =
-      totalCourses > 0 ? (completedCourses.length / totalCourses) * 100 : 0;
+    const totalCoursesEver = mockCourses.length;
+
+    let filteredCourses = [...courses].sort((a, b) =>
+      overallSortOrderCourses === "asc"
+        ? a.name.localeCompare(b.name)
+        : b.name.localeCompare(a.name)
+    );
+    switch (statusFilter) {
+      case "completed":
+        filteredCourses = filteredCourses.filter((course) => course.done);
+        break;
+      case "inProgress":
+        filteredCourses = filteredCourses.filter((course) => !course.done);
+        break;
+      case "recent":
+        filteredCourses = filteredCourses
+          .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
+          .slice(0, 5);
+        break;
+      case "core":
+        filteredCourses = filteredCourses.filter(
+          (course) => course.type === "Core"
+        );
+        break;
+      case "elective":
+        filteredCourses = filteredCourses.filter(
+          (course) => course.type === "Elective"
+        );
+        break;
+      default:
+        break;
+    }
+
+    const enrolledStudentEmails = new Set(
+      courses.flatMap((course) => course.students)
+    );
+    const allStudents = mockUsers.filter((u) => u.userType === "student");
+    let filteredStudents;
+
+    switch (studentFilter) {
+      case "enrolled":
+        filteredStudents = allStudents.filter((student) =>
+          enrolledStudentEmails.has(student.email)
+        );
+        break;
+      case "notEnrolled":
+        filteredStudents = allStudents.filter(
+          (student) => !enrolledStudentEmails.has(student.email)
+        );
+        break;
+      case "all":
+        filteredStudents = allStudents;
+        break;
+      default:
+        filteredStudents = allStudents;
+    }
+
+    filteredStudents = filteredStudents.sort((a, b) =>
+      overallSortOrderStudents === "asc"
+        ? a.lastName.localeCompare(b.lastName)
+        : b.lastName.localeCompare(a.lastName)
+    );
 
     return {
       totalCourses,
+      completedCourses,
       totalStudentsEnrolled,
-      studentsFinishedPerCourse,
-      totalStudentsFinished,
-      averageCompletionRate: averageCompletionRate.toFixed(2),
+      completionRate: completionRate.toFixed(2),
+      totalCurrentStudents,
+      totalStudentsSoFar: allStudentsEver,
+      totalCoursesSoFar: totalCoursesEver,
+      filteredCourses,
+      filteredStudents,
     };
   };
 
+  const handleCopyCourseName = (courseId) => {
+    const courseName = courses.find((c) => c.id === courseId).name;
+    setCopiedCourseName(courseName);
+    navigator.clipboard.writeText(courseName);
+    setSelectedCourseAction("copycoursename");
+    setIsCourseActionsOpen(false);
+  };
+
+  const handleCopyMultipleCourseNames = () => {
+    const courseNames = selectedCourses
+      .map((id) => courses.find((c) => c.id === id).name)
+      .join(", ");
+    setCopiedCourseName(courseNames);
+    navigator.clipboard.writeText(courseNames);
+    setSelectedCourseAction("copyselectedcoursenames");
+    setIsCourseActionsOpen(false);
+  };
+
+  const handleCopyStudentEmail = (studentEmail) => {
+    setCopiedStudentEmails(studentEmail);
+    navigator.clipboard.writeText(studentEmail);
+    setSelectedStudentAction("copyemail");
+    setIsStudentActionsOpen(false);
+  };
+
+  const handleCopyStudentName = (studentEmail) => {
+    const student = courseStudents.find((s) => s.email === studentEmail);
+    const name = `${student.firstName} ${student.lastName}`;
+    navigator.clipboard.writeText(name);
+    setSelectedStudentAction("copyname");
+    setIsStudentActionsOpen(false);
+  };
+
+  const handleCopyMultipleStudentNames = () => {
+    const names = selectedStudents
+      .map((email) => {
+        const student = courseStudents.find((s) => s.email === email);
+        return `${student.firstName} ${student.lastName}`;
+      })
+      .join(", ");
+    navigator.clipboard.writeText(names);
+    setSelectedStudentAction("copymorenames");
+    setIsStudentActionsOpen(false);
+  };
+
+  const handleCopyMultipleStudentEmails = () => {
+    const emails = selectedStudents.join(", ");
+    setCopiedStudentEmails(emails);
+    navigator.clipboard.writeText(emails);
+    setSelectedStudentAction("copyemails");
+    setIsStudentActionsOpen(false);
+  };
+
+  const handleCopyAllStudentEmails = () => {
+    const allEmails = courseStudents.map((s) => s.email).join(", ");
+    setCopiedStudentEmails(allEmails);
+    navigator.clipboard.writeText(allEmails);
+    setSelectedStudentAction("copyallemails");
+    setIsStudentActionsOpen(false);
+  };
+
+  const handleCopyAllStudentNames = () => {
+    const allNames = courseStudents
+      .map((s) => `${s.firstName} ${s.lastName}`)
+      .join(", ");
+    navigator.clipboard.writeText(allNames);
+    setSelectedStudentAction("copyallnames");
+    setIsStudentActionsOpen(false);
+  };
+
+  const handlePasteCourseName = () => {
+    if (copiedCourseName) setNewCourseName(copiedCourseName);
+  };
+
+  const handleEditCourseName = (courseId, currentName) => {
+    setEditingCourseId(courseId);
+    setEditedCourseName(currentName);
+  };
+
+  const handleSaveEdit = (courseId) => {
+    if (editedCourseName.trim()) {
+      const updatedCourses = mockCourses.map((course) =>
+        course.id === courseId
+          ? { ...course, name: editedCourseName.trim() }
+          : course
+      );
+      localStorage.setItem("mockCourses", JSON.stringify(updatedCourses));
+      setCourses(getCourses(user.email));
+      setEditingCourseId(null);
+      setEditedCourseName("");
+      setSelectedCourseAction("renamecourse");
+      setIsCourseActionsOpen(false);
+    }
+  };
+
+  const handleExportCourses = () => {
+    setIsExporting(true);
+    const csvContent = [
+      "Course Name,Type,Students,Status",
+      ...courses.map(
+        (course) =>
+          `${course.name},${course.type},${course.students.length},${
+            course.done ? "Completed" : "In Progress"
+          }`
+      ),
+    ].join("\n");
+    const blob = new Blob([csvContent], { type: "text/csv" });
+    const url = window.URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = "courses_export.csv";
+    link.click();
+    window.URL.revokeObjectURL(url);
+    setIsExporting(false);
+  };
+
+  const handleExportOverallStatus = () => {
+    setIsExporting(true);
+    const overallStatus = getOverallCoursesStatus();
+    const csvContent = [
+      "First Name,Last Name,Email,Status",
+      ...overallStatus.filteredStudents.map(
+        (student) =>
+          `${student.firstName},${student.lastName},${student.email},${
+            courses.some((c) => c.students.includes(student.email))
+              ? "Enrolled"
+              : "Not Enrolled"
+          }`
+      ),
+    ].join("\n");
+    const blob = new Blob([csvContent], { type: "text/csv" });
+    const url = window.URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = "overall_students_status_export.csv";
+    link.click();
+    window.URL.revokeObjectURL(url);
+    setIsExporting(false);
+  };
+
+  const handleExportProgress = () => {
+    setIsExporting(true);
+    const csvContent = [
+      "Subject,Percentage",
+      ...progressData.map((data) => `${data.subject},${data.percentage}`),
+    ].join("\n");
+    const blob = new Blob([csvContent], { type: "text/csv" });
+    const url = window.URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = "class_progress_export.csv";
+    link.click();
+    window.URL.revokeObjectURL(url);
+    setIsExporting(false);
+  };
+
+  const handleExportStudents = () => {
+    setIsExporting(true);
+    const csvContent = [
+      "First Name,Last Name,Email",
+      ...filteredStudents.map(
+        (student) => `${student.firstName},${student.lastName},${student.email}`
+      ),
+    ].join("\n");
+    const blob = new Blob([csvContent], { type: "text/csv" });
+    const url = window.URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `students_in_${
+      courses.find((c) => c.id === selectedCourse)?.name
+    }_export.csv`;
+    link.click();
+    window.URL.revokeObjectURL(url);
+    setIsExporting(false);
+  };
+
+  const renderCourseActionsMenu = () => (
+    <div className="absolute right-0 mt-2 w-64 bg-[var(--primary-bg-end)] rounded-lg shadow-xl z-10 border border-[var(--accent)]">
+      {[
+        { label: "Select All Courses", action: handleSelectAllCourses },
+        {
+          label: "Enroll Students",
+          action: handleMultiEnroll,
+          disabled: selectedCourses.length === 0 || !multiEnrollEmails.trim(),
+        },
+        {
+          label: "Copy Selected Course Names",
+          action: handleCopyMultipleCourseNames,
+          disabled: selectedCourses.length === 0,
+        },
+        {
+          label: "Rename Course",
+          action: () =>
+            selectedCourses.length === 1 &&
+            handleEditCourseName(
+              selectedCourses[0],
+              courses.find((c) => c.id === selectedCourses[0]).name
+            ),
+          disabled: selectedCourses.length !== 1,
+        },
+        {
+          label: "Copy Course Name",
+          action: () =>
+            selectedCourses.length === 1 &&
+            handleCopyCourseName(selectedCourses[0]),
+          disabled: selectedCourses.length !== 1,
+        },
+        {
+          label: "Delete Course",
+          action: () =>
+            selectedCourses.length === 1 &&
+            handleDeleteSingleCourse(selectedCourses[0]),
+          disabled: selectedCourses.length !== 1,
+        },
+        {
+          label: "Delete Selected Courses",
+          action: handleDeleteSelectedCourses,
+          disabled: selectedCourses.length === 0,
+        },
+        { label: "Export Courses", action: handleExportCourses },
+      ].map((item, index) => (
+        <button
+          key={index}
+          onClick={item.action}
+          disabled={item.disabled}
+          className={`block w-full text-left px-4 py-3 text-sm text-[var(--text-secondary)] hover:bg-[var(--accent)] hover:text-[var(--text-primary)] transition-all duration-150 ${
+            item.disabled ? "opacity-50 cursor-not-allowed" : "opacity-100"
+          }`}
+        >
+          {selectedCourseAction ===
+            item.label.toLowerCase().replace(/\s+/g, "") && (
+            <FiCheck className="inline mr-2" />
+          )}
+          {item.label}
+        </button>
+      ))}
+    </div>
+  );
+
+  const renderStudentActionsMenu = () => (
+    <div className="absolute right-0 mt-2 w-64 bg-[var(--primary-bg-end)] rounded-lg shadow-xl z-10 border border-[var(--accent)]">
+      {[
+        { label: "Select All Students", action: handleSelectAllStudents },
+        {
+          label: "Copy Email",
+          action: () =>
+            selectedStudents.length === 1 &&
+            handleCopyStudentEmail(selectedStudents[0]),
+          disabled: selectedStudents.length !== 1,
+        },
+        {
+          label: "Copy Name",
+          action: () =>
+            selectedStudents.length === 1 &&
+            handleCopyStudentName(selectedStudents[0]),
+          disabled: selectedStudents.length !== 1,
+        },
+        {
+          label: "Copy Selected Names",
+          action: handleCopyMultipleStudentNames,
+          disabled: selectedStudents.length === 0,
+        },
+        {
+          label: "Copy Selected Emails",
+          action: handleCopyMultipleStudentEmails,
+          disabled: selectedStudents.length === 0,
+        },
+        {
+          label: "Copy All Emails",
+          action: handleCopyAllStudentEmails,
+          disabled: courseStudents.length === 0,
+        },
+        {
+          label: "Copy All Names",
+          action: handleCopyAllStudentNames,
+          disabled: courseStudents.length === 0,
+        },
+        {
+          label: "Remove Selected",
+          action: handleDeleteSelectedStudents,
+          disabled: selectedStudents.length === 0,
+        },
+        { label: "Export Students", action: handleExportStudents },
+      ].map((item, index) => (
+        <button
+          key={index}
+          onClick={item.action}
+          disabled={item.disabled}
+          className={`block w-full text-left px-4 py-3 text-sm text-[var(--text-secondary)] hover:bg-[var(--accent)] hover:text-[var(--text-primary)] transition-all duration-150 ${
+            item.disabled ? "opacity-50 cursor-not-allowed" : "opacity-100"
+          }`}
+        >
+          {selectedStudentAction ===
+            item.label.toLowerCase().replace(/\s+/g, "") && (
+            <FiCheck className="inline mr-2" />
+          )}
+          {item.label}
+        </button>
+      ))}
+    </div>
+  );
+
   const overallStatus = getOverallCoursesStatus();
 
+  if (!user) return null;
+
   return (
-    <div className="min-h-screen flex flex-col">
+    <div className="min-h-screen flex flex-col bg-[var(--primary-bg-start)]">
       <Navbar />
       <main className="flex-1 px-4 py-8 mt-16">
-        {/* Welcome Section */}
+        {/* Header Section */}
         <div className="flex flex-col md:flex-row items-center justify-center text-center md:text-left md:gap-8 px-4 py-8">
           <div className="mb-6">
             <img
@@ -492,16 +804,19 @@ const TeacherDashboard = () => {
             />
           </div>
           <div className="text-2xl md:text-3xl font-bold mb-6 md:ml-4 mt-4">
-            <h1 className="text-2xl md:text-3xl font-bold">
-              Welcome, {user?.firstName} {user?.lastName}!
+            <h1 className="text-2xl md:text-3xl font-bold text-[var(--text-primary)]">
+              Welcome, {user.firstName} {user.lastName}!
             </h1>
             <p className="text-xl md:text-2xl font-medium text-[var(--text-secondary)] mt-2">
-              {user?.role}
+              {user.role}
+            </p>
+            <p className="text-lg md:text-xl font-light text-[var(--text-secondary)] mt-2">
+              School: {user.school}
             </p>
             <div className="flex gap-4 md:gap-6">
               <Button
                 onClick={() => setIsEditProfileOpen(true)}
-                className="mt-4 text-lg md:text-xl shadow-lg transform transition-all duration-300 hover:scale-105"
+                className="mt-4 text-lg md:text-xl shadow-lg transform transition-all duration-300 hover:scale-105 bg-[var(--accent)] hover:bg-cyan-500"
               >
                 Edit Profile
               </Button>
@@ -517,19 +832,19 @@ const TeacherDashboard = () => {
 
         {/* Add Course Modal */}
         {isAddCourseOpen && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-            <div className="bg-white dark:bg-gray-800 rounded-lg max-w-md w-full p-6 shadow-xl transform transition-all duration-300">
-              <div className="flex justify-between items-center mb-4">
-                <h2 className="text-xl font-bold text-gray-800 dark:text-white">
+          <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50 p-6">
+            <div className="bg-[var(--primary-bg-end)] rounded-xl max-w-lg w-full p-8 shadow-2xl border border-[var(--accent)]">
+              <div className="flex justify-between items-center mb-6 border-b pb-2">
+                <h2 className="text-2xl font-bold text-[var(--text-primary)]">
                   Create New Course
                 </h2>
                 <button
                   onClick={() => setIsAddCourseOpen(false)}
-                  className="text-gray-500 hover:text-gray-700 dark:hover:text-gray-300"
+                  className="text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
                 >
                   <svg
                     xmlns="http://www.w3.org/2000/svg"
-                    className="h-6 w-6"
+                    className="h-7 w-7"
                     fill="none"
                     viewBox="0 0 24 24"
                     stroke="currentColor"
@@ -543,12 +858,11 @@ const TeacherDashboard = () => {
                   </svg>
                 </button>
               </div>
-
-              <div className="space-y-4">
+              <div className="space-y-6">
                 <div>
                   <label
                     htmlFor="courseName"
-                    className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
+                    className="block text-sm font-medium text-[var(--text-primary)] mb-2"
                   >
                     Course Name
                   </label>
@@ -558,725 +872,128 @@ const TeacherDashboard = () => {
                     value={newCourseName}
                     onChange={(e) => setNewCourseName(e.target.value)}
                     placeholder="Enter course name"
-                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white"
+                    className="w-full px-4 py-3 border border-[var(--accent)] rounded-lg bg-[var(--primary-bg-start)] text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)]"
                   />
                 </div>
-
+                <div className="flex gap-3">
+                  <Button
+                    onClick={handlePasteCourseName}
+                    className="bg-[var(--accent)] hover:bg-cyan-500 text-white px-4 py-2 rounded-lg flex items-center"
+                    disabled={!copiedCourseName}
+                  >
+                    <FiClipboard className="mr-2" /> Paste Course Name
+                  </Button>
+                  <Button
+                    onClick={() =>
+                      navigator.clipboard
+                        .readText()
+                        .then((text) => setNewCourseName(text))
+                    }
+                    className="bg-[var(--accent)] hover:bg-cyan-500 text-white px-4 py-2 rounded-lg flex items-center"
+                  >
+                    <FiCopy className="mr-2" /> Paste from Clipboard
+                  </Button>
+                </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                  <label className="block text-sm font-medium text-[var(--text-primary)] mb-2">
                     Upload Course Material (Optional)
                   </label>
-                  <div className="mt-1 flex justify-center px-6 pt-5 pb-6 border-2 border-gray-300 dark:border-gray-600 border-dashed rounded-md">
-                    <div className="space-y-1 text-center">
-                      <svg
-                        className="mx-auto h-12 w-12 text-gray-400"
-                        stroke="currentColor"
-                        fill="none"
-                        viewBox="0 0 48 48"
-                        aria-hidden="true"
-                      >
-                        <path
-                          d="M28 8H12a4 4 0 00-4 4v20m32-12v8m0 0v8a4 4 0 01-4 4H12a4 4 0 01-4-4v-4m32-4l-3.172-3.172a4 4 0 00-5.656 0L28 28M8 32l9.172-9.172a4 4 0 015.656 0L28 28m0 0l4 4m4-24h8m-4-4v8m-12 4h.02"
-                          strokeWidth={2}
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                        />
-                      </svg>
-                      <div className="flex text-sm text-gray-600 dark:text-gray-400">
-                        <label
-                          htmlFor="file-upload"
-                          className="relative cursor-pointer bg-white dark:bg-gray-800 rounded-md font-medium text-blue-600 dark:text-blue-400 hover:text-blue-500 dark:hover:text-blue-300 focus-within:outline-none focus-within:ring-2 focus-within:ring-offset-2 focus-within:ring-blue-500"
-                        >
-                          <span>Upload a file</span>
-                          <input
-                            id="file-upload"
-                            name="file-upload"
-                            type="file"
-                            ref={fileInputRef}
-                            className="sr-only"
-                            onChange={handleFileChange}
-                            accept=".pdf,.json,.txt,.csv"
-                          />
-                        </label>
-                        <p className="pl-1">or drag and drop</p>
-                      </div>
-                      <p className="text-xs text-gray-500 dark:text-gray-400">
-                        PDF, JSON, TXT, or CSV up to 10MB
-                      </p>
-                    </div>
+                  <div className="relative border-2 border-dashed border-[var(--accent)] rounded-lg p-6 text-center">
+                    <input
+                      type="file"
+                      ref={fileInputRef}
+                      onChange={handleFileChange}
+                      accept=".pdf,.json,.txt,.csv"
+                      className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                    />
+                    <FiUpload className="mx-auto h-12 w-12 text-[var(--text-secondary)]" />
+                    <p className="mt-2 text-sm text-[var(--text-secondary)]">
+                      Drag and drop or{" "}
+                      <span className="text-[var(--accent)] hover:underline">
+                        click to upload
+                      </span>
+                    </p>
+                    <p className="text-xs text-[var(--text-secondary)]">
+                      PDF, JSON, TXT, or CSV (max 10MB)
+                    </p>
                   </div>
                 </div>
-
                 {selectedFile && (
-                  <div className="border border-gray-200 dark:border-gray-700 rounded-md p-3">
-                    <div className="flex justify-between items-center">
-                      <div className="flex items-center space-x-3">
-                        <div className="flex-shrink-0">
-                          {selectedFile.type === "application/pdf" ? (
-                            <svg
-                              className="h-10 w-10 text-red-500"
-                              fill="currentColor"
-                              viewBox="0 0 20 20"
-                            >
-                              <path
-                                fillRule="evenodd"
-                                d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4zm2 6a1 1 0 011-1h6a1 1 0 110 2H7a1 1 0 01-1-1zm1 3a1 1 0 100 2h6a1 1 0 100-2H7z"
-                                clipRule="evenodd"
-                              />
-                            </svg>
-                          ) : (
-                            <svg
-                              className="h-10 w-10 text-blue-500"
-                              fill="currentColor"
-                              viewBox="0 0 20 20"
-                            >
-                              <path
-                                fillRule="evenodd"
-                                d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4zm2 6a1 1 0 011-1h6a1 1 0 110 2H7a1 1 0 01-1-1zm1 3a1 1 0 100 2h6a1 1 0 100-2H7z"
-                                clipRule="evenodd"
-                              />
-                            </svg>
-                          )}
-                        </div>
-                        <div className="min-w-0 flex-1">
-                          <p className="text-sm font-medium text-gray-900 dark:text-white truncate">
-                            {fileName}
-                          </p>
-                          <p className="text-sm text-gray-500 dark:text-gray-400">
-                            {selectedFile.type} •{" "}
-                            {(selectedFile.size / 1024).toFixed(2)} KB
-                          </p>
-                        </div>
+                  <div className="border border-[var(--accent)] rounded-lg p-4 flex items-center justify-between bg-[var(--primary-bg-start)]">
+                    <div className="flex items-center space-x-3">
+                      <FiFile className="h-8 w-8 text-[var(--accent)]" />
+                      <div>
+                        <p className="text-sm font-medium text-[var(--text-primary)]">
+                          {fileName}
+                        </p>
+                        <p className="text-xs text-[var(--text-secondary)]">
+                          {(selectedFile.size / 1024).toFixed(2)} KB
+                        </p>
                       </div>
-                      <button
-                        type="button"
-                        onClick={handleRemoveFile}
-                        className="ml-1 p-1 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                      >
-                        <svg
-                          className="h-5 w-5 text-gray-400"
-                          fill="currentColor"
-                          viewBox="0 0 20 20"
-                        >
-                          <path
-                            fillRule="evenodd"
-                            d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z"
-                            clipRule="evenodd"
-                          />
-                        </svg>
-                      </button>
                     </div>
-
-                    {filePreview && (
-                      <div className="mt-3 max-h-60 overflow-y-auto p-2 bg-gray-50 dark:bg-gray-700 rounded">
-                        {selectedFile.type === "application/pdf" ? (
-                          <div className="flex items-center justify-center py-4">
-                            <a
-                              href={filePreview}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="text-blue-500 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300"
-                            >
-                              View PDF
-                            </a>
-                          </div>
-                        ) : (
-                          <pre className="text-xs text-gray-800 dark:text-gray-200 whitespace-pre-wrap">
-                            {filePreview.length > 1000
-                              ? filePreview.substring(0, 1000) + "..."
-                              : filePreview}
-                          </pre>
-                        )}
-                      </div>
+                    <button
+                      onClick={handleRemoveFile}
+                      className="text-red-500 hover:text-red-700"
+                    >
+                      <FiTrash2 className="h-5 w-5" />
+                    </button>
+                  </div>
+                )}
+                {filePreview && (
+                  <div className="mt-4 p-4 bg-[var(--primary-bg-start)] rounded-lg max-h-40 overflow-y-auto">
+                    {selectedFile.type === "application/pdf" ? (
+                      <a
+                        href={filePreview}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-[var(--accent)] hover:underline"
+                      >
+                        View PDF Preview
+                      </a>
+                    ) : (
+                      <pre className="text-xs text-[var(--text-secondary)]">
+                        {filePreview.substring(0, 500)}...
+                      </pre>
                     )}
                   </div>
                 )}
-
-                <div className="flex gap-4 pt-2">
-                  <button
+                <div className="flex gap-4">
+                  <Button
                     onClick={handleUploadCourse}
-                    className="w-full px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors"
+                    className="w-full bg-green-500 hover:bg-green-600 text-white px-6 py-3 rounded-lg"
                   >
                     Create Course
-                  </button>
-                  <button
+                  </Button>
+                  <Button
                     onClick={() => {
                       setIsAddCourseOpen(false);
                       handleRemoveFile();
                     }}
-                    className="w-full px-4 py-2 bg-gray-200 hover:bg-gray-300 dark:bg-gray-600 dark:hover:bg-gray-700 text-gray-800 dark:text-white font-medium rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500 transition-colors"
+                    className="w-full bg-red-500 hover:bg-red-600 text-white px-6 py-3 rounded-lg"
                   >
                     Cancel
-                  </button>
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* Overall Courses Status Section */}
-        <section className="mb-12 mt-20">
-          <div className="shadow-lg transform transition-all duration-300 hover:scale-105 max-w-4xl mx-auto bg-[var(--primary-bg-end)] rounded-lg">
-            <div className="flex justify-between items-center mb-4">
-              <h2 className="text-xl md:text-2xl font-bold p-6">
-                Overall Courses Status
-              </h2>
-              <div className="flex items-center justify-end pl-6 pt-6 pr-6 pb-9">
-                <Button
-                  onClick={() => setShowOverallStatus(!showOverallStatus)}
-                  className="bg-[var(--accent)] hover:bg-cyan-500 w-45"
-                >
-                  {showOverallStatus ? "Hide" : "View"}
-                </Button>
-              </div>
-            </div>
-            {showOverallStatus && (
-              <div className="p-6">
-                <div className="mb-6">
-                  <h3 className="text-lg font-semibold mb-2">Summary</h3>
-                  <p>Total Courses Added: {overallStatus.totalCourses}</p>
-                  <p>
-                    Total Students Enrolled (Unique):{" "}
-                    {overallStatus.totalStudentsEnrolled}
-                  </p>
-                  <p>
-                    Total Students Finished Courses (Unique):{" "}
-                    {overallStatus.totalStudentsFinished}
-                  </p>
-                  <p>
-                    Average Completion Rate:{" "}
-                    {overallStatus.averageCompletionRate}%
-                  </p>
-                  <p>Completed Courses: {completedCourses.length}</p>
-                </div>
-                <div>
-                  <h3 className="text-lg font-semibold mb-2">Course Details</h3>
-                  {courses.length > 0 ? (
-                    <div className="space-y-3">
-                      {courses.map((course) => {
-                        const isCompleted = completedCourses.some(
-                          (c) => c.id === course.id
-                        );
-                        const finishedCount = isCompleted
-                          ? course.students.length
-                          : 0;
-                        return (
-                          <div
-                            key={course.id}
-                            className="bg-[var(--primary-bg-light)] p-3 rounded-lg"
-                          >
-                            <p>
-                              <strong>{course.name}</strong>
-                            </p>
-                            <p>Students Enrolled: {course.students.length}</p>
-                            <p>Students Finished: {finishedCount}</p>
-                            <p>
-                              Status:{" "}
-                              {isCompleted ? "Completed" : "In Progress"}
-                            </p>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  ) : (
-                    <p className="text-center text-[var(--text-secondary)]">
-                      No courses available.
-                    </p>
-                  )}
-                </div>
-              </div>
-            )}
-          </div>
-        </section>
-
-        {/* Class Progress Section */}
-        <section className="mb-12">
-          <div className="shadow-lg transform transition-all duration-300 hover:scale-105 max-w-4xl mx-auto bg-[var(--primary-bg-end)] rounded-lg">
-            <div className="flex justify-between items-center mb-4">
-              <h2 className="text-xl md:text-2xl font-bold p-6">
-                Class Progress
-              </h2>
-              <div className="flex items-center justify-end pl-6 pt-6 pr-6 pb-9">
-                <Button
-                  onClick={() => setShowProgress(!showProgress)}
-                  className="bg-[var(--accent)] hover:bg-cyan-500 w-45"
-                >
-                  {showProgress ? "Hide" : "View"}
-                </Button>
-              </div>
-            </div>
-            {showProgress && (
-              <div className="p-6">
-                {progressData.length > 0 ? (
-                  progressData.map((data, index) => (
-                    <ProgressBar
-                      key={index}
-                      subject={data.subject}
-                      percentage={data.percentage}
-                    />
-                  ))
-                ) : (
-                  <p className="text-center text-[var(--text-secondary)]">
-                    No class progress data available.
-                  </p>
-                )}
-              </div>
-            )}
-          </div>
-        </section>
-
-        {/* Course Management Section */}
-        <section className="max-w-4xl mx-auto mb-12">
-          <div className="bg-[var(--primary-bg-end)] p-6 rounded-lg shadow-lg transform transition-all duration-300 hover:scale-105">
-            <div className="flex justify-between items-center mb-4">
-              <h2 className="text-xl md:text-2xl font-bold p-6 pl-1.5">
-                Course List
-              </h2>
-              <div className="flex gap-2">
-                <Button
-                  onClick={handleToggleCourseSelectionMode}
-                  className={`flex items-center justify-center gap-2 hover:bg-cyan-500 w-45 ${
-                    isMultiEnrollMode
-                      ? "bg-green-600 hover:bg-green-700"
-                      : "bg-[var(--accent)] hover:bg-[var(--accent-dark)]"
-                  }`}
-                >
-                  <FiUserPlus />
-                  {isMultiEnrollMode ? "Cancel" : "Select Courses"}
-                </Button>
-                <Button
-                  onClick={() => setShowCourses(!showCourses)}
-                  className="bg-[var(--accent)] hover:bg-cyan-500 w-45"
-                >
-                  {showCourses ? "Hide" : "View"}
-                </Button>
-              </div>
-            </div>
-
-            {isMultiEnrollMode && selectedCourses.length > 0 && (
-              <div className="flex gap-2 mb-4">
-                <Button
-                  onClick={handleDeleteSelectedCourses}
-                  className="bg-red-500 hover:bg-cyan-500 w-45 flex items-center gap-2"
-                >
-                  <FiTrash2 /> Delete Selected
-                </Button>
-                <Button
-                  onClick={handleMarkAsCompleted}
-                  className="bg-green-500 hover:bg-green-600 flex items-center gap-2"
-                >
-                  <FiCheck /> Mark Completed
-                </Button>
-              </div>
-            )}
-
-            {showCourses && (
-              <div className="space-y-2">
-                {courses.length > 0 ? (
-                  courses.map((course) => (
-                    <div
-                      key={course.id}
-                      className={`p-3 rounded-lg flex items-center justify-between ${
-                        selectedCourse === course.id
-                          ? "bg-[var(--accent)] text-white"
-                          : "bg-[var(--primary-bg-light)] hover:bg-[var(--accent-light)]"
-                      }`}
-                    >
-                      <div className="flex items-center gap-3">
-                        {isMultiEnrollMode && (
-                          <input
-                            type="checkbox"
-                            checked={selectedCourses.includes(course.id)}
-                            onChange={() => toggleCourseSelection(course.id)}
-                            className="h-5 w-5 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-                          />
-                        )}
-                        <span>{course.name}</span>
-                      </div>
-
-                      <div className="flex items-center gap-2">
-                        <span className="text-white text-lg gap-x-1.5 flex items-center mr-2">
-                          <FiUserPlus />
-                          {course.students.length}
-                        </span>
-                        <Button
-                          onClick={() => navigate(`/course/${course.id}`)}
-                          className="p-2 text-sm flex items-center gap-1 bg-gray-800 hover:bg-blue-600 w-38 text-white rounded-md h-8 justify-center"
-                        >
-                          <FiBookOpen /> Read
-                        </Button>
-                        <Button
-                          onClick={() => handleSelectCourse(course.id)}
-                          className="p-2 text-sm flex items-center justify-center gap-1 hover:bg-blue-600 text-white rounded-md h-8 w-38"
-                        >
-                          <FiSettings /> Manage
-                        </Button>
-                        <Button
-                          onClick={() => handleDeleteSingleCourse(course.id)}
-                          className="p-2 text-sm flex items-center gap-1 bg-red-500 hover:bg-red-600 text-white rounded-md h-8 w-38"
-                        >
-                          <FiTrash2 /> Delete
-                        </Button>
-                      </div>
-                    </div>
-                  ))
-                ) : (
-                  <p className="text-center text-[var(--text-secondary)]">
-                    No courses available.
-                  </p>
-                )}
-              </div>
-            )}
-          </div>
-
-          {isMultiEnrollMode && (
-            <div className="mb-6 bg-cyan-500 rounded-lg p-6">
-              <h4 className="font-medium mb-3">Multi-Enrollment</h4>
-              <div className="flex flex-col md:flex-row gap-3">
-                <input
-                  type="text"
-                  value={enrollStudentEmails}
-                  onChange={handleMultiEmailInputChange}
-                  placeholder="Enter student emails (e.g., email1@example.com, email2@example.com)"
-                  className="flex-1 p-2 border rounded-lg"
-                />
-                <Button
-                  onClick={handleMultiEnroll}
-                  disabled={
-                    selectedCourses.length === 0 || !enrollStudentEmails.trim()
-                  }
-                  className="bg-red-500 hover:bg-cyan-500 flex items-center justify-center gap-2"
-                >
-                  <FiUsers /> Enroll to {selectedCourses.length} Course(s)
-                </Button>
-              </div>
-              {enrollStudentEmails && (
-                <div className="mt-2 text-sm">
-                  {enrollStudentEmails
-                    .split(",")
-                    .map((email) => email.trim())
-                    .filter((email) => email.length > 0)
-                    .map((email) => (
-                      <div key={email}>
-                        {isStudentRegistered(email) ? (
-                          <span className="text-green-800">
-                            ✓ {email} is registered
-                          </span>
-                        ) : (
-                          <span className="text-red-800">
-                            ✗ {email} not found. Please register first
-                          </span>
-                        )}
-                      </div>
-                    ))}
-                </div>
-              )}
-            </div>
-          )}
-        </section>
-
-        {/* Student Management Section */}
-        {selectedCourse && (
-          <section className="max-w-4xl mx-auto mb-12">
-            <div className="bg-[var(--primary-bg-end)] p-6 rounded-lg shadow-lg transform transition-all duration-300 hover:scale-105">
-              <div className="flex justify-between items-center mb-4">
-                <h2 className="text-xl font-bold">
-                  Students in{" "}
-                  {courses.find((c) => c.id === selectedCourse)?.name}
-                </h2>
-                <div className="flex gap-2">
-                  <Button
-                    onClick={handleToggleStudentSelectionMode}
-                    className={`flex items-center justify-center gap-2 w-45 ${
-                      isStudentSelectionMode
-                        ? "bg-green-600 hover:bg-green-700"
-                        : "bg-[var(--accent)] hover:bg-cyan-500"
-                    }`}
-                  >
-                    <FiUsers />
-                    {isStudentSelectionMode ? "Cancel" : "Select Students"}
-                  </Button>
-                  <Button
-                    onClick={() => setShowStudents(!showStudents)}
-                    className="bg-[var(--accent)] w-45 hover:bg-cyan-500"
-                  >
-                    {showStudents ? "Hide" : "View"}
                   </Button>
                 </div>
               </div>
-
-              {showStudents && (
-                <>
-                  <div className="mb-6">
-                    <h3 className="text-lg font-semibold mb-4">
-                      Enroll New Student
-                    </h3>
-                    <div className="flex gap-4 mb-4">
-                      <input
-                        type="email"
-                        value={newStudentEmail}
-                        onChange={handleEmailInputChange}
-                        placeholder="Enter student email"
-                        className="flex-1 bg-[var(--accent)] text-[var(--text-primary)] p-3 rounded-lg"
-                        list="student-emails"
-                      />
-                      <datalist id="student-emails">
-                        {suggestedEmails.map((email) => (
-                          <option key={email} value={email} />
-                        ))}
-                      </datalist>
-                      <Button
-                        onClick={handleAddStudent}
-                        className="w-45 hover:bg-cyan-500"
-                        disabled={
-                          !newStudentEmail ||
-                          !isStudentRegistered(newStudentEmail)
-                        }
-                      >
-                        Add Student
-                      </Button>
-                    </div>
-                    {newStudentEmail && (
-                      <div className="text-sm mb-4">
-                        {isStudentRegistered(newStudentEmail) ? (
-                          <span className="text-green-500">
-                            ✓ Student is registered
-                          </span>
-                        ) : (
-                          <span className="text-red-500">
-                            ✗ Student not found.
-                            <Link
-                              to="/signup"
-                              className="ml-2 text-blue-500 underline"
-                            >
-                              Create account
-                            </Link>
-                          </span>
-                        )}
-                      </div>
-                    )}
-                  </div>
-
-                  <div>
-                    <div className="flex justify-between items-center mb-4">
-                      <h3 className="text-lg font-semibold">
-                        Enrolled Students
-                      </h3>
-                      {isStudentSelectionMode &&
-                        selectedStudents.length > 0 && (
-                          <Button
-                            onClick={handleDeleteSelectedStudents}
-                            className="bg-red-500 hover:bg-cyan-500 flex items-center gap-2 text-sm px-3 py-1"
-                          >
-                            <FiTrash2 /> Remove Selected
-                          </Button>
-                        )}
-                    </div>
-                    {courseStudents.length > 0 ? (
-                      <>
-                        <div className="mb-4">
-                          <input
-                            type="text"
-                            value={searchTerm}
-                            onChange={(e) => setSearchTerm(e.target.value)}
-                            placeholder="Search students..."
-                            className="w-full bg-[var(--accent)] text-[var(--text-primary)] p-2 rounded-lg"
-                          />
-                        </div>
-                        <div className="space-y-3">
-                          {filteredStudents.map((student) => {
-                            const studentCourses = getStudentCourses(
-                              student.email
-                            );
-                            const showCoursesLink = studentCourses.length > 1;
-
-                            return (
-                              <div
-                                key={student.email}
-                                className="bg-[var(--primary-bg-light)] p-3 rounded-lg"
-                              >
-                                <div className="flex justify-between items-center">
-                                  <div className="flex items-center gap-3">
-                                    {isStudentSelectionMode && (
-                                      <input
-                                        type="checkbox"
-                                        checked={selectedStudents.includes(
-                                          student.email
-                                        )}
-                                        onChange={() =>
-                                          toggleStudentSelection(student.email)
-                                        }
-                                        className="h-5 w-5 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-                                      />
-                                    )}
-                                    <span>
-                                      {student.firstName} {student.lastName} (
-                                      {student.email})
-                                      {showCoursesLink && (
-                                        <>
-                                          {" -- "}
-                                          <button
-                                            onClick={() =>
-                                              toggleStudentDetails(
-                                                student.email
-                                              )
-                                            }
-                                            className="text-blue-500 hover:underline"
-                                          >
-                                            courses
-                                          </button>
-                                        </>
-                                      )}
-                                    </span>
-                                  </div>
-                                  <div className="flex gap-2">
-                                    <Button
-                                      onClick={() =>
-                                        handleViewStudentProgress(student)
-                                      }
-                                      className="bg-blue-500 hover:bg-blue-600 w-45 text-sm px-3 py-1"
-                                    >
-                                      {selectedStudent?.email === student.email
-                                        ? "Hide Progress"
-                                        : "View Progress"}
-                                    </Button>
-                                    <Button
-                                      onClick={() =>
-                                        handleRemoveStudent(student.email)
-                                      }
-                                      className="bg-red-500 text-sm px-3 py-1 w-45 hover:bg-cyan-500"
-                                    >
-                                      Remove
-                                    </Button>
-                                  </div>
-                                </div>
-                                {selectedStudent?.email === student.email && (
-                                  <div className="mt-3 pl-4 border-l-4 border-[var(--accent)]">
-                                    <h4 className="font-medium mb-2">
-                                      Progress:
-                                    </h4>
-                                    {getStudentProgressForCourse(
-                                      student.email,
-                                      selectedCourse
-                                    )?.length > 0 ? (
-                                      getStudentProgressForCourse(
-                                        student.email,
-                                        selectedCourse
-                                      ).map((progress, idx) => (
-                                        <ProgressBar
-                                          key={idx}
-                                          subject={progress.subject}
-                                          percentage={progress.percentage}
-                                          className="mb-2"
-                                        />
-                                      ))
-                                    ) : (
-                                      <p className="text-[var(--text-secondary)]">
-                                        No progress data available
-                                      </p>
-                                    )}
-                                  </div>
-                                )}
-                                {expandedStudentEmail === student.email && (
-                                  <div className="mt-3 pl-4 border-l-4 border-[var(--accent)]">
-                                    <h4 className="font-medium mb-2">
-                                      Student: {student.firstName}{" "}
-                                      {student.lastName}
-                                    </h4>
-                                    <div className="space-y-2">
-                                      {studentCourses.map((course) => (
-                                        <div
-                                          key={course.id}
-                                          className="flex justify-between items-center"
-                                        >
-                                          <span>{course.name}</span>
-                                          <Button
-                                            onClick={() =>
-                                              navigate(`/course/${course.id}`)
-                                            }
-                                            className="p-2 text-sm flex items-center gap-1 bg-gray-800 hover:bg-blue-600 text-white rounded-md h-8"
-                                          >
-                                            <FiBookOpen /> Read
-                                          </Button>
-                                        </div>
-                                      ))}
-                                    </div>
-                                    <Button
-                                      onClick={() =>
-                                        handleViewStudentProgress(student)
-                                      }
-                                      className="mt-2 bg-blue-500 hover:bg-blue-600 text-sm px-3 py-1"
-                                    >
-                                      {selectedStudent?.email === student.email
-                                        ? "Hide Progress"
-                                        : "View Progress"}
-                                    </Button>
-                                    {selectedStudent?.email ===
-                                      student.email && (
-                                      <div className="mt-2">
-                                        {studentCourses.map((course) => (
-                                          <div key={course.id} className="mb-2">
-                                            <h5 className="font-medium">
-                                              {course.name} Progress:
-                                            </h5>
-                                            {getStudentProgressForCourse(
-                                              student.email,
-                                              course.id
-                                            )?.length > 0 ? (
-                                              getStudentProgressForCourse(
-                                                student.email,
-                                                course.id
-                                              ).map((progress, idx) => (
-                                                <ProgressBar
-                                                  key={idx}
-                                                  subject={progress.subject}
-                                                  percentage={
-                                                    progress.percentage
-                                                  }
-                                                  className="mb-2"
-                                                />
-                                              ))
-                                            ) : (
-                                              <p className="text-[var(--text-secondary)]">
-                                                No progress data available
-                                              </p>
-                                            )}
-                                          </div>
-                                        ))}
-                                      </div>
-                                    )}
-                                  </div>
-                                )}
-                              </div>
-                            );
-                          })}
-                        </div>
-                      </>
-                    ) : (
-                      <p className="text-center text-[var(--text-secondary)]">
-                        No students enrolled in this course.
-                      </p>
-                    )}
-                  </div>
-                </>
-              )}
             </div>
-          </section>
+          </div>
         )}
 
         {/* Edit Profile Modal */}
         {isEditProfileOpen && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-            <div className="bg-[var(--primary-bg-end)] rounded-lg max-w-md w-full p-6 shadow-xl">
-              <div className="flex justify-between items-center mb-4">
-                <h2 className="text-xl font-bold">Edit Profile</h2>
+          <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50 p-6">
+            <div className="bg-[var(--primary-bg-end)] rounded-xl max-w-lg w-full p-8 shadow-2xl border border-[var(--accent)]">
+              <div className="flex justify-between items-center mb-6 border-b pb-2">
+                <h2 className="text-2xl font-bold text-[var(--text-primary)]">
+                  Edit Profile
+                </h2>
                 <button
                   onClick={() => setIsEditProfileOpen(false)}
-                  className="text-gray-500 hover:text-gray-700"
+                  className="text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
                 >
                   <svg
                     xmlns="http://www.w3.org/2000/svg"
-                    className="h-6 w-6"
+                    className="h-7 w-7"
                     fill="none"
                     viewBox="0 0 24 24"
                     stroke="currentColor"
@@ -1290,10 +1007,9 @@ const TeacherDashboard = () => {
                   </svg>
                 </button>
               </div>
-
-              <div className="space-y-4">
+              <div className="space-y-6">
                 <div>
-                  <label className="block text-sm font-medium text-white mb-1">
+                  <label className="block text-sm font-medium text-[var(--text-primary)] mb-2">
                     First Name
                   </label>
                   <input
@@ -1305,12 +1021,11 @@ const TeacherDashboard = () => {
                         firstName: e.target.value,
                       })
                     }
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                    className="w-full px-4 py-3 border border-[var(--accent)] rounded-lg bg-[var(--primary-bg-start)] text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)]"
                   />
                 </div>
-
                 <div>
-                  <label className="block text-sm font-medium text-white mb-1">
+                  <label className="block text-sm font-medium text-[var(--text-primary)] mb-2">
                     Last Name
                   </label>
                   <input
@@ -1322,16 +1037,15 @@ const TeacherDashboard = () => {
                         lastName: e.target.value,
                       })
                     }
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                    className="w-full px-4 py-3 border border-[var(--accent)] rounded-lg bg-[var(--primary-bg-start)] text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)]"
                   />
                 </div>
-
                 <div>
-                  <label className="block text-sm font-medium text-white disabled">
+                  <label className="block text-sm font-medium text-[var(--text-primary)] mb-2">
                     Email
                   </label>
                   <input
-                    type="text"
+                    type="email"
                     value={editProfileData.email}
                     onChange={(e) =>
                       setEditProfileData({
@@ -1339,18 +1053,49 @@ const TeacherDashboard = () => {
                         email: e.target.value,
                       })
                     }
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                    className="w-full px-4 py-3 border border-[var(--accent)] rounded-lg bg-[var(--primary-bg-start)] text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)]"
                   />
                 </div>
-
-                <div className="flex justify-end gap-3 pt-4">
-                  <button
+                <div>
+                  <label className="block text-sm font-medium text-[var(--text-primary)] mb-2">
+                    Phone (Optional)
+                  </label>
+                  <input
+                    type="tel"
+                    value={editProfileData.phone}
+                    onChange={(e) =>
+                      setEditProfileData({
+                        ...editProfileData,
+                        phone: e.target.value,
+                      })
+                    }
+                    className="w-full px-4 py-3 border border-[var(--accent)] rounded-lg bg-[var(--primary-bg-start)] text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)]"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-[var(--text-primary)] mb-2">
+                    Bio (Optional)
+                  </label>
+                  <textarea
+                    value={editProfileData.bio}
+                    onChange={(e) =>
+                      setEditProfileData({
+                        ...editProfileData,
+                        bio: e.target.value,
+                      })
+                    }
+                    className="w-full px-4 py-3 border border-[var(--accent)] rounded-lg bg-[var(--primary-bg-start)] text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)]"
+                    rows="4"
+                  />
+                </div>
+                <div className="flex justify-end gap-4 pt-4">
+                  <Button
                     onClick={() => setIsEditProfileOpen(false)}
-                    className="px-4 py-2 bg-gray-200 hover:bg-gray-300 rounded-md"
+                    className="px-6 py-3 bg-red-500 hover:bg-red-600 text-white rounded-lg"
                   >
                     Cancel
-                  </button>
-                  <button
+                  </Button>
+                  <Button
                     onClick={async () => {
                       try {
                         await updateProfile(
@@ -1363,14 +1108,748 @@ const TeacherDashboard = () => {
                         alert("Failed to update profile. Please try again.");
                       }
                     }}
-                    className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-md"
+                    className="px-6 py-3 bg-green-500 hover:bg-green-600 text-white rounded-lg"
                   >
                     Save Changes
-                  </button>
+                  </Button>
                 </div>
               </div>
             </div>
           </div>
+        )}
+
+        {/* Overall Courses Status Section */}
+        <section className="mb-12">
+          <div className="shadow-lg transform transition-all duration-300 hover:scale-105 max-w-5xl mx-auto bg-[var(--primary-bg-end)] rounded-lg">
+            <div className="flex justify-between items-center p-6 border-b border-[var(--accent)]">
+              <h2 className="text-xl md:text-2xl font-bold text-[var(--text-primary)]">
+                Overall Courses Status
+              </h2>
+              <div className="flex gap-4">
+                <Button
+                  onClick={handleExportOverallStatus}
+                  className="bg-[var(--accent)] hover:bg-cyan-500 text-white px-4 py-2 rounded-lg flex items-center"
+                  disabled={isExporting}
+                >
+                  <FiDownload className="mr-2" /> Export Students
+                </Button>
+                <Button
+                  onClick={() => setShowOverallStatus(!showOverallStatus)}
+                  className="bg-[var(--accent)] hover:bg-cyan-500 text-white px-4 py-2 rounded-lg transition-all duration-200"
+                >
+                  {showOverallStatus ? "Hide" : "View"}
+                </Button>
+              </div>
+            </div>
+            {showOverallStatus && (
+              <div className="p-6 space-y-6">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                  <div className="bg-[var(--primary-bg-start)] p-4 rounded-lg">
+                    <p className="text-[var(--text-secondary)] text-sm">
+                      Total Current Courses
+                    </p>
+                    <p className="text-2xl font-semibold text-[var(--text-primary)]">
+                      {overallStatus.totalCourses}
+                    </p>
+                  </div>
+                  <div className="bg-[var(--primary-bg-start)] p-4 rounded-lg">
+                    <p className="text-[var(--text-secondary)] text-sm">
+                      Total Courses So Far
+                    </p>
+                    <p className="text-2xl font-semibold text-[var(--text-primary)]">
+                      {overallStatus.totalCoursesSoFar}
+                    </p>
+                  </div>
+                  <div className="bg-[var(--primary-bg-start)] p-4 rounded-lg">
+                    <p className="text-[var(--text-secondary)] text-sm">
+                      Completed Courses
+                    </p>
+                    <p className="text-2xl font-semibold text-[var(--text-primary)]">
+                      {overallStatus.completedCourses}
+                    </p>
+                  </div>
+                  <div className="bg-[var(--primary-bg-start)] p-4 rounded-lg">
+                    <p className="text-[var(--text-secondary)] text-sm">
+                      Total Current Students
+                    </p>
+                    <p className="text-2xl font-semibold text-[var(--text-primary)]">
+                      {overallStatus.totalCurrentStudents}
+                    </p>
+                  </div>
+                  <div className="bg-[var(--primary-bg-start)] p-4 rounded-lg">
+                    <p className="text-[var(--text-secondary)] text-sm">
+                      Total Students So Far
+                    </p>
+                    <p className="text-2xl font-semibold text-[var(--text-primary)]">
+                      {overallStatus.totalStudentsSoFar}
+                    </p>
+                  </div>
+                  <div className="bg-[var(--primary-bg-start)] p-4 rounded-lg">
+                    <p className="text-[var(--text-secondary)] text-sm">
+                      Completion Rate
+                    </p>
+                    <p className="text-2xl font-semibold text-[var(--text-primary)]">
+                      {overallStatus.completionRate}%
+                    </p>
+                  </div>
+                </div>
+                <div className="flex flex-col gap-6">
+                  {/* Course Filtering */}
+                  <div className="flex items-center gap-4">
+                    <label className="text-[var(--text-primary)] font-medium">
+                      Filter Courses:
+                    </label>
+                    <select
+                      value={statusFilter}
+                      onChange={(e) => setStatusFilter(e.target.value)}
+                      className="p-3 border border-[var(--accent)] rounded-lg bg-[var(--primary-bg-start)] text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)]"
+                    >
+                      <option value="all">All Courses</option>
+                      <option value="completed">Completed</option>
+                      <option value="inProgress">In Progress</option>
+                      <option value="recent">Recent Courses</option>
+                      <option value="core">Core Courses</option>
+                      <option value="elective">Elective Courses</option>
+                    </select>
+                    <select
+                      value={overallSortOrderCourses}
+                      onChange={(e) =>
+                        setOverallSortOrderCourses(e.target.value)
+                      }
+                      className="p-3 border border-[var(--accent)] rounded-lg bg-[var(--primary-bg-start)] text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)]"
+                    >
+                      <option value="asc">Sort Courses A-Z</option>
+                      <option value="desc">Sort Courses Z-A</option>
+                    </select>
+                  </div>
+                  {overallStatus.filteredCourses.length > 0 ? (
+                    <div className="overflow-x-auto">
+                      <table className="w-full text-left">
+                        <thead>
+                          <tr className="bg-[var(--primary-bg-start)]">
+                            <th className="p-3 text-[var(--text-primary)]">
+                              Name
+                            </th>
+                            <th className="p-3 text-[var(--text-primary)]">
+                              Type
+                            </th>
+                            <th className="p-3 text-[var(--text-primary)]">
+                              Students
+                            </th>
+                            <th className="p-3 text-[var(--text-primary)]">
+                              Status
+                            </th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {overallStatus.filteredCourses.map((course) => (
+                            <tr
+                              key={course.id}
+                              className="border-b border-[var(--accent)] hover:bg-[var(--accent)]"
+                            >
+                              <td className="p-3 text-[var(--text-secondary)]">
+                                <Link
+                                  to={`/course/${course.id}`}
+                                  className="text-[var(--accent)] hover:underline"
+                                >
+                                  {course.name}
+                                </Link>
+                              </td>
+                              <td className="p-3 text-[var(--text-secondary)]">
+                                {course.type}
+                              </td>
+                              <td className="p-3 text-[var(--text-secondary)]">
+                                {course.students.length}
+                              </td>
+                              <td className="p-3 text-[var(--text-secondary)]">
+                                {course.done ? "Completed" : "In Progress"}
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  ) : (
+                    <p className="text-center text-[var(--text-secondary)] py-4">
+                      No courses match the current filter.
+                    </p>
+                  )}
+
+                  {/* Student Filtering */}
+                  <div className="flex items-center gap-4">
+                    <label className="text-[var(--text-primary)] font-medium">
+                      Filter Students:
+                    </label>
+                    <select
+                      value={studentFilter}
+                      onChange={(e) => setStudentFilter(e.target.value)}
+                      className="p-3 border border-[var(--accent)] rounded-lg bg-[var(--primary-bg-start)] text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)]"
+                    >
+                      <option value="enrolled">Enrolled Students</option>
+                      <option value="notEnrolled">Not Enrolled Students</option>
+                      <option value="all">All Students</option>
+                    </select>
+                    <select
+                      value={overallSortOrderStudents}
+                      onChange={(e) =>
+                        setOverallSortOrderStudents(e.target.value)
+                      }
+                      className="p-3 border border-[var(--accent)] rounded-lg bg-[var(--primary-bg-start)] text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)]"
+                    >
+                      <option value="asc">Sort Students A-Z</option>
+                      <option value="desc">Sort Students Z-A</option>
+                    </select>
+                  </div>
+                  {overallStatus.filteredStudents.length > 0 ? (
+                    <div className="overflow-x-auto bg-[var(--primary-bg-start)] p-4 rounded-lg shadow-inner">
+                      <table className="w-full text-left">
+                        <thead>
+                          <tr className="bg-[var(--primary-bg-start)]">
+                            <th className="p-3 text-[var(--text-primary)]">
+                              Name
+                            </th>
+                            <th className="p-3 text-[var(--text-primary)]">
+                              Email
+                            </th>
+                            <th className="p-3 text-[var(--text-primary)]">
+                              Status
+                            </th>
+                            <th className="p-3 text-[var(--text-primary)]">
+                              Enrolled Courses
+                            </th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {overallStatus.filteredStudents.map((student) => (
+                            <tr
+                              key={student.email}
+                              className="border-b border-[var(--accent)] hover:bg-[var(--accent)]"
+                            >
+                              <td className="p-3 text-[var(--text-primary)]">
+                                <Link
+                                  to={`/student/${student.email}`}
+                                  className="hover:text-[var(--accent)]"
+                                >
+                                  {student.firstName} {student.lastName}
+                                </Link>
+                              </td>
+                              <td className="p-3 text-[var(--text-secondary)]">
+                                {student.email}
+                              </td>
+                              <td className="p-3">
+                                <span
+                                  className={`inline-block px-2 py-1 rounded-full text-sm font-medium ${
+                                    courses.some((c) =>
+                                      c.students.includes(student.email)
+                                    )
+                                      ? "bg-green-100 text-green-800"
+                                      : "bg-red-100 text-red-800"
+                                  }`}
+                                >
+                                  {courses.some((c) =>
+                                    c.students.includes(student.email)
+                                  )
+                                    ? "Enrolled"
+                                    : "Not Enrolled"}
+                                </span>
+                              </td>
+                              <td className="p-3 text-[var(--text-secondary)]">
+                                {getStudentCourses(student.email).length > 0
+                                  ? getStudentCourses(student.email)
+                                      .map((c) => c.name)
+                                      .join(", ")
+                                  : "None"}
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  ) : (
+                    <p className="text-center text-[var(--text-secondary)] py-4">
+                      No students match the current filter.
+                    </p>
+                  )}
+                </div>
+              </div>
+            )}
+          </div>
+        </section>
+
+        {/* Class Progress Section */}
+        <section className="mb-12">
+          <div className="shadow-lg transform transition-all duration-300 hover:scale-105 max-w-5xl mx-auto bg-[var(--primary-bg-end)] rounded-lg">
+            <div className="flex justify-between items-center p-6 border-b border-[var(--accent)]">
+              <h2 className="text-xl md:text-2xl font-bold text-[var(--text-primary)]">
+                Class Progress
+              </h2>
+              <div className="flex gap-4">
+                <Button
+                  onClick={handleExportProgress}
+                  className="bg-[var(--accent)] hover:bg-cyan-500 text-white px-4 py-2 rounded-lg flex items-center"
+                  disabled={isExporting}
+                >
+                  <FiDownload className="mr-2" /> Export
+                </Button>
+                <Button
+                  onClick={() => setShowProgress(!showProgress)}
+                  className="bg-[var(--accent)] hover:bg-cyan-500 text-white px-4 py-2 rounded-lg transition-all duration-200"
+                >
+                  {showProgress ? "Hide" : "View"}
+                </Button>
+              </div>
+            </div>
+            {showProgress && (
+              <div className="p-6 space-y-4">
+                {progressData.length > 0 ? (
+                  progressData.map((data, index) => (
+                    <div
+                      key={index}
+                      className="bg-[var(--primary-bg-start)] p-4 rounded-lg"
+                    >
+                      <div className="flex justify-between items-center mb-2">
+                        <Link
+                          to={`/progress/${data.subject}`}
+                          className="text-[var(--text-primary)] font-medium hover:text-[var(--accent)]"
+                        >
+                          {data.subject}
+                        </Link>
+                        <span className="text-[var(--text-secondary)]">
+                          {data.percentage}%
+                        </span>
+                      </div>
+                      <ProgressBar
+                        subject={data.subject}
+                        percentage={data.percentage}
+                      />
+                    </div>
+                  ))
+                ) : (
+                  <p className="text-center text-[var(--text-secondary)] py-4">
+                    No progress data available.
+                  </p>
+                )}
+              </div>
+            )}
+          </div>
+        </section>
+
+        {/* Course Management Section */}
+        <section className="max-w-5xl mx-auto mb-12">
+          <div className="bg-[var(--primary-bg-end)] p-6 rounded-lg shadow-lg transform transition-all duration-300 hover:scale-105">
+            <div className="flex justify-between items-center mb-6 border-b border-[var(--accent)] pb-4">
+              <h2 className="text-xl md:text-2xl font-bold text-[var(--text-primary)]">
+                Course Management
+              </h2>
+              <div className="flex gap-4">
+                {showCourses && (
+                  <div className="relative">
+                    <Button
+                      onClick={() =>
+                        setIsCourseActionsOpen(!isCourseActionsOpen)
+                      }
+                      className={`bg-[var(--accent)] hover:bg-cyan-500 text-white px-4 py-2 rounded-lg transition-all duration-200 ${
+                        isCourseActionsOpen ? "bg-red-500 hover:bg-red-600" : ""
+                      }`}
+                    >
+                      {isCourseActionsOpen ? "Cancel" : "Select"}
+                    </Button>
+                    {isCourseActionsOpen && renderCourseActionsMenu()}
+                  </div>
+                )}
+                <Button
+                  onClick={() => {
+                    setShowCourses(!showCourses);
+                    setIsCourseActionsOpen(false);
+                    setSelectedCourses([]);
+                  }}
+                  className="bg-[var(--accent)] hover:bg-cyan-500 text-white px-4 py-2 rounded-lg transition-all duration-200"
+                >
+                  {showCourses ? "Hide" : "View"}
+                </Button>
+              </div>
+            </div>
+            {showCourses && (
+              <div className="space-y-6">
+                <div className="flex flex-col sm:flex-row gap-4">
+                  <input
+                    type="text"
+                    value={multiEnrollEmails}
+                    onChange={(e) => setMultiEnrollEmails(e.target.value)}
+                    placeholder="Enter student emails (comma-separated)"
+                    className="flex-1 px-4 py-3 border border-[var(--accent)] rounded-lg bg-[var(--primary-bg-start)] text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)]"
+                  />
+                  <Button
+                    onClick={handleMultiEnroll}
+                    className="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-lg"
+                    disabled={
+                      selectedCourses.length === 0 || !multiEnrollEmails.trim()
+                    }
+                  >
+                    Enroll Selected
+                  </Button>
+                </div>
+                {courses.length > 0 ? (
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-left">
+                      <thead>
+                        <tr className="bg-[var(--primary-bg-start)]">
+                          <th className="p-3 w-12"></th>
+                          <th className="p-3 text-[var(--text-primary)]">
+                            Course Name
+                          </th>
+                          <th className="p-3 text-[var(--text-primary)]">
+                            Students
+                          </th>
+                          <th className="p-3 text-[var(--text-primary)]">
+                            Actions
+                          </th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {courses.map((course) => (
+                          <tr
+                            key={course.id}
+                            className={`border-b border-[var(--accent)] hover:bg-[var(--accent)] ${
+                              selectedCourses.includes(course.id)
+                                ? "bg-[var(--accent)] text-[var(--text-primary)]"
+                                : "text-[var(--text-secondary)]"
+                            }`}
+                          >
+                            <td className="p-3">
+                              <input
+                                type="checkbox"
+                                checked={selectedCourses.includes(course.id)}
+                                onChange={() =>
+                                  toggleCourseSelection(course.id)
+                                }
+                                className="w-5 h-5 accent-[var(--accent)]"
+                              />
+                            </td>
+                            <td className="p-3">
+                              {editingCourseId === course.id ? (
+                                <input
+                                  type="text"
+                                  value={editedCourseName}
+                                  onChange={(e) =>
+                                    setEditedCourseName(e.target.value)
+                                  }
+                                  onKeyPress={(e) =>
+                                    e.key === "Enter" &&
+                                    handleSaveEdit(course.id)
+                                  }
+                                  onBlur={() => handleSaveEdit(course.id)}
+                                  className="px-2 py-1 border border-[var(--accent)] rounded-lg bg-[var(--primary-bg-start)] text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)]"
+                                />
+                              ) : (
+                                <Link
+                                  to={`/course/${course.id}`}
+                                  className="hover:text-[var(--accent)]"
+                                >
+                                  {course.name}
+                                </Link>
+                              )}
+                            </td>
+                            <td className="p-3">{course.students.length}</td>
+                            <td className="p-3">
+                              <div className="flex gap-2">
+                                <Button
+                                  onClick={() =>
+                                    navigate(`/course/${course.id}`)
+                                  }
+                                  className="bg-blue-500 hover:bg-blue-600 text-white px-3 py-1 rounded-lg"
+                                >
+                                  <FiBookOpen className="mr-1" /> Read
+                                </Button>
+                                <Button
+                                  onClick={() => handleSelectCourse(course.id)}
+                                  className="bg-[var(--accent)] hover:bg-cyan-500 text-white px-3 py-1 rounded-lg"
+                                >
+                                  <FiSettings className="mr-1" /> Manage
+                                </Button>
+                              </div>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                ) : (
+                  <p className="text-center text-[var(--text-secondary)] py-4">
+                    No courses available. Add a course to get started!
+                  </p>
+                )}
+              </div>
+            )}
+          </div>
+        </section>
+
+        {/* Students Section */}
+        {selectedCourse && (
+          <section className="max-w-5xl mx-auto mb-12">
+            <div className="bg-[var(--primary-bg-end)] p-6 rounded-lg shadow-lg transform transition-all duration-300 hover:scale-105">
+              <div className="flex justify-between items-center mb-6 border-b border-[var(--accent)] pb-4">
+                <h2 className="text-xl md:text-2xl font-bold text-[var(--text-primary)]">
+                  Students in{" "}
+                  {courses.find((c) => c.id === selectedCourse)?.name}
+                </h2>
+                <div className="flex gap-4">
+                  {showStudents && (
+                    <div className="relative">
+                      <Button
+                        onClick={() =>
+                          setIsStudentActionsOpen(!isStudentActionsOpen)
+                        }
+                        className={`bg-[var(--accent)] hover:bg-cyan-500 text-white px-4 py-2 rounded-lg transition-all duration-200 ${
+                          isStudentActionsOpen
+                            ? "bg-red-500 hover:bg-red-600"
+                            : ""
+                        }`}
+                      >
+                        {isStudentActionsOpen ? "Cancel" : "Select"}
+                      </Button>
+                      {isStudentActionsOpen && renderStudentActionsMenu()}
+                    </div>
+                  )}
+                  <Button
+                    onClick={() => {
+                      setShowStudents(!showStudents);
+                      setIsStudentActionsOpen(false);
+                      setSelectedStudents([]);
+                    }}
+                    className="bg-[var(--accent)] hover:bg-cyan-500 text-white px-4 py-2 rounded-lg transition-all duration-200"
+                  >
+                    {showStudents ? "Hide" : "View"}
+                  </Button>
+                </div>
+              </div>
+              {showStudents && (
+                <div className="space-y-6">
+                  <div className="flex flex-col sm:flex-row gap-4">
+                    <input
+                      type="email"
+                      value={newStudentEmail}
+                      onChange={handleEmailInputChange}
+                      placeholder="Enter student email"
+                      className="flex-1 px-4 py-3 border border-[var(--accent)] rounded-lg bg-[var(--primary-bg-start)] text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)]"
+                      list="student-emails"
+                    />
+                    <datalist id="student-emails">
+                      {suggestedEmails.map((email) => (
+                        <option key={email} value={email} />
+                      ))}
+                    </datalist>
+                    <Button
+                      onClick={handleAddStudent}
+                      disabled={
+                        !newStudentEmail ||
+                        !isStudentRegistered(newStudentEmail)
+                      }
+                      className="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-lg"
+                    >
+                      <FiUserPlus className="mr-2" /> Add Student
+                    </Button>
+                    <Button
+                      onClick={handlePasteStudentEmail}
+                      className="bg-[var(--accent)] hover:bg-cyan-500 text-white px-4 py-2 rounded-lg"
+                      disabled={!copiedStudentEmails}
+                    >
+                      <FiClipboard className="mr-2" /> Paste Email
+                    </Button>
+                  </div>
+                  {newStudentEmail && (
+                    <p className="text-sm text-[var(--text-secondary)]">
+                      {isStudentRegistered(newStudentEmail) ? (
+                        <span className="text-green-500">
+                          ✓ Registered student
+                        </span>
+                      ) : (
+                        <span className="text-red-500">
+                          ✗ Not registered -{" "}
+                          <Link
+                            to="/signup"
+                            className="underline text-[var(--accent)]"
+                          >
+                            Sign up
+                          </Link>
+                        </span>
+                      )}
+                    </p>
+                  )}
+                  {courseStudents.length > 0 ? (
+                    <>
+                      <div className="flex items-center gap-4">
+                        <div className="relative flex-1">
+                          <FiSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-[var(--text-secondary)]" />
+                          <input
+                            type="text"
+                            value={searchTerm}
+                            onChange={(e) => setSearchTerm(e.target.value)}
+                            placeholder="Search students by name or email..."
+                            className="w-full pl-10 pr-4 py-3 border border-[var(--accent)] rounded-lg bg-[var(--primary-bg-start)] text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)]"
+                          />
+                        </div>
+                        <select
+                          value={sortOrderStudents}
+                          onChange={(e) => setSortOrderStudents(e.target.value)}
+                          className="p-3 border border-[var(--accent)] rounded-lg bg-[var(--primary-bg-start)] text-[var(--text-primary)]"
+                        >
+                          <option value="asc">Sort Students A-Z</option>
+                          <option value="desc">Sort Students Z-A</option>
+                        </select>
+                        <select
+                          value={sortOrderCourses}
+                          onChange={(e) => setSortOrderCourses(e.target.value)}
+                          className="p-3 border border-[var(--accent)] rounded-lg bg-[var(--primary-bg-start)] text-[var(--text-primary)]"
+                        >
+                          <option value="asc">Sort Courses A-Z</option>
+                          <option value="desc">Sort Courses Z-A</option>
+                        </select>
+                      </div>
+                      <div className="overflow-x-auto">
+                        <table className="w-full text-left">
+                          <thead>
+                            <tr className="bg-[var(--primary-bg-start)]">
+                              <th className="p-3 w-12"></th>
+                              <th className="p-3 text-[var(--text-primary)]">
+                                Name
+                              </th>
+                              <th className="p-3 text-[var(--text-primary)]">
+                                Email
+                              </th>
+                              <th className="p-3 text-[var(--text-primary)]">
+                                Actions
+                              </th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {filteredStudents.map((student) => (
+                              <tr
+                                key={student.email}
+                                className={`border-b border-[var(--accent)] hover:bg-[var(--accent)] ${
+                                  selectedStudents.includes(student.email)
+                                    ? "bg-[var(--accent)] text-[var(--text-primary)]"
+                                    : "text-[var(--text-secondary)]"
+                                }`}
+                              >
+                                <td className="p-3">
+                                  <input
+                                    type="checkbox"
+                                    checked={selectedStudents.includes(
+                                      student.email
+                                    )}
+                                    onChange={() =>
+                                      toggleStudentSelection(student.email)
+                                    }
+                                    className="w-5 h-5 accent-[var(--accent)]"
+                                  />
+                                </td>
+                                <td className="p-3">
+                                  <Link
+                                    to={`/student/${student.email}`}
+                                    className="hover:text-[var(--accent)]"
+                                  >
+                                    {student.firstName} {student.lastName}
+                                  </Link>
+                                  {getStudentCourses(student.email).length >
+                                    0 && (
+                                    <button
+                                      onClick={() =>
+                                        navigate("/deleted-students-list")
+                                      }
+                                      className="ml-2 text-[var(--accent)] hover:underline text-sm"
+                                    >
+                                      ({getStudentCourses(student.email).length}{" "}
+                                      courses)
+                                    </button>
+                                  )}
+                                </td>
+                                <td className="p-3">{student.email}</td>
+                                <td className="p-3">
+                                  <div className="flex gap-2">
+                                    <Button
+                                      onClick={() =>
+                                        handleViewStudentProgress(student)
+                                      }
+                                      className="bg-blue-500 hover:bg-blue-600 text-white px-3 py-1 rounded-lg"
+                                    >
+                                      {selectedStudent?.email === student.email
+                                        ? "Hide"
+                                        : "Progress"}
+                                    </Button>
+                                    <Button
+                                      onClick={() =>
+                                        handleRemoveStudent(student.email)
+                                      }
+                                      className="bg-red-500 hover:bg-red-600 text-white px-3 py-1 rounded-lg"
+                                    >
+                                      <FiTrash2 className="mr-1" /> Remove
+                                    </Button>
+                                  </div>
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                      {filteredStudents.map((student) => (
+                        <div key={student.email}>
+                          {selectedStudent?.email === student.email && (
+                            <div className="mt-4 p-4 bg-[var(--primary-bg-start)] rounded-lg border-l-4 border-[var(--accent)]">
+                              <h4 className="text-lg font-medium text-[var(--text-primary)] mb-2">
+                                Progress for{" "}
+                                <Link
+                                  to={`/student/${student.email}`}
+                                  className="hover:text-[var(--accent)]"
+                                >
+                                  {student.firstName} {student.lastName}
+                                </Link>
+                              </h4>
+                              {getStudentProgressForCourse(
+                                student.email,
+                                selectedCourse
+                              )?.length > 0 ? (
+                                getStudentProgressForCourse(
+                                  student.email,
+                                  selectedCourse
+                                ).map((progress, idx) => (
+                                  <div key={idx} className="mb-3">
+                                    <div className="flex justify-between items-center mb-1">
+                                      <Link
+                                        to={`/progress/${progress.subject}`}
+                                        className="text-[var(--text-primary)] hover:text-[var(--accent)]"
+                                      >
+                                        {progress.subject}
+                                      </Link>
+                                      <span className="text-[var(--text-secondary)]">
+                                        {progress.percentage}%
+                                      </span>
+                                    </div>
+                                    <ProgressBar
+                                      subject={progress.subject}
+                                      percentage={progress.percentage}
+                                    />
+                                  </div>
+                                ))
+                              ) : (
+                                <p className="text-sm text-[var(--text-secondary)]">
+                                  No progress data available.
+                                </p>
+                              )}
+                            </div>
+                          )}
+                        </div>
+                      ))}
+                    </>
+                  ) : (
+                    <p className="text-center text-[var(--text-secondary)] py-4">
+                      No students enrolled in this course.
+                    </p>
+                  )}
+                </div>
+              )}
+            </div>
+          </section>
         )}
       </main>
       <Footer />

@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from "react";
 import { useAuth } from "../context/AuthContext";
 
-const QuizModal = ({ isOpen, onClose }) => {
+const QuizModal = ({ isOpen, onClose, courseId = null }) => {
   const {
     quizzes = { apiBased: { apis: [] }, courseBased: { courses: [] } },
+    mockCourses,
     fetchQuizQuestions,
     submitQuizAnswer,
     quizScore,
@@ -25,7 +26,7 @@ const QuizModal = ({ isOpen, onClose }) => {
   const [localQuizQuestions, setLocalQuizQuestions] = useState([]);
   const [localCurrentIndex, setLocalCurrentIndex] = useState(0);
   const [error, setError] = useState(null);
-  const [backgroundColor, setBackgroundColor] = useState("rgba(0, 0, 0, 0.7)"); // Default background
+  const [backgroundColor, setBackgroundColor] = useState("rgba(0, 0, 0, 0.7)");
 
   const availableApis = quizzes?.apiBased?.apis || [];
   const courseBasedCourses = quizzes?.courseBased?.courses || [];
@@ -44,8 +45,20 @@ const QuizModal = ({ isOpen, onClose }) => {
     : ["All"];
 
   useEffect(() => {
-    if (!isOpen) resetState();
-  }, [isOpen]);
+    if (!isOpen) {
+      resetState();
+    } else if (courseId) {
+      // Auto-start quiz for specific course
+      const course = mockCourses.find((c) => c.id === courseId && !c.deleted);
+      if (course) {
+        setQuizType("courseBased");
+        setCourseBasedCourse(course.name);
+        setCourseBasedChapter("All");
+        setIsDropdownOpen(false);
+        handleStartQuizForCourse(course.name);
+      }
+    }
+  }, [isOpen, courseId, mockCourses]);
 
   const resetState = () => {
     setQuizType(null);
@@ -60,8 +73,35 @@ const QuizModal = ({ isOpen, onClose }) => {
     setLocalQuizQuestions([]);
     setLocalCurrentIndex(0);
     setError(null);
-    setBackgroundColor("rgba(0, 0, 0, 0.7)"); // Reset to default
+    setBackgroundColor("rgba(0, 0, 0, 0.7)");
     resetQuiz();
+  };
+
+  const handleStartQuizForCourse = async (courseName) => {
+    setIsLoading(true);
+    setError(null);
+    try {
+      const selection = {
+        type: "courseBased",
+        course: courseName,
+        chapter: "All",
+      };
+      const questions = await fetchQuizQuestions(selection);
+      if (questions && questions.length > 0) {
+        setLocalQuizQuestions(questions);
+        setLocalCurrentIndex(0);
+        setShowQuiz(true);
+        setSelectedOption(null);
+      } else {
+        setError(`No questions available for ${courseName}.`);
+        setShowQuiz(false);
+      }
+    } catch (error) {
+      setError("Failed to load quiz questions. Please try again.");
+      setShowQuiz(false);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const handleStartQuiz = async () => {
@@ -135,13 +175,12 @@ const QuizModal = ({ isOpen, onClose }) => {
   };
 
   const updateBackgroundColor = (score) => {
-    // Dynamic gradient based on score
     if (score >= 80) {
-      setBackgroundColor("linear-gradient(135deg, #4CAF50, #81C784)"); // Green for high score
+      setBackgroundColor("linear-gradient(135deg, #4CAF50, #81C784)");
     } else if (score >= 50) {
-      setBackgroundColor("linear-gradient(135deg, #FFCA28, #FFD54F)"); // Yellow for medium score
+      setBackgroundColor("linear-gradient(135deg, #FFCA28, #FFD54F)");
     } else {
-      setBackgroundColor("linear-gradient(135deg, #F44336, #EF5350)"); // Red for low score
+      setBackgroundColor("linear-gradient(135deg, #F44336, #EF5350)");
     }
   };
 
@@ -166,7 +205,11 @@ const QuizModal = ({ isOpen, onClose }) => {
     setSelectedOption(null);
     setShowQuiz(false);
     setIsDropdownOpen(true);
-    setBackgroundColor("rgba(0, 0, 0, 0.7)"); // Reset to default
+    setBackgroundColor("rgba(0, 0, 0, 0.7)");
+    if (courseId) {
+      const course = mockCourses.find((c) => c.id === courseId && !c.deleted);
+      if (course) handleStartQuizForCourse(course.name);
+    }
   };
 
   const handleExit = () => {
@@ -204,13 +247,18 @@ const QuizModal = ({ isOpen, onClose }) => {
               <button
                 onClick={() => setIsDropdownOpen(!isDropdownOpen)}
                 className="w-full p-4 bg-[var(--accent)] text-[var(--text-primary)] rounded-lg hover:bg-[var(--accent-dark)] transition-colors flex justify-between items-center"
+                disabled={courseId} // Disable manual selection if courseId is provided
               >
                 <span>
-                  {quizType ? `${quizType} Quiz` : "Select Quiz Type"}
+                  {quizType
+                    ? `${quizType} Quiz`
+                    : courseId
+                    ? `Quiz for Course`
+                    : "Select Quiz Type"}
                 </span>
                 <span>{isDropdownOpen ? "▲" : "▼"}</span>
               </button>
-              {isDropdownOpen && (
+              {isDropdownOpen && !courseId && (
                 <div className="absolute top-full left-0 w-full mt-2 bg-[var(--primary-bg-start)] rounded-lg shadow-lg z-10 p-4 border border-[var(--accent)]">
                   <div className="space-y-6">
                     <div>

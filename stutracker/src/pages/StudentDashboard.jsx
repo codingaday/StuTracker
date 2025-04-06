@@ -1,8 +1,5 @@
 import { useNavigate } from "react-router-dom";
 import { useEffect, useState } from "react";
-import { EditorContent, useEditor } from "@tiptap/react";
-import StarterKit from "@tiptap/starter-kit";
-import FontSize from "@tiptap/extension-font-size";
 import Navbar from "../components/Navbar";
 import Footer from "../components/Footer";
 import ProgressBar from "../components/ProgressBar";
@@ -15,11 +12,11 @@ import StudentStudyingImage from "/images/dashboard-student-studying.png";
 const StudentDashboard = () => {
   const {
     user,
+
     getProgressData,
     getStreak,
     addGoal,
     deleteGoal,
-    deleteMultipleGoals,
     getGoals,
     updateProfile,
     getTeacherForCourse,
@@ -36,7 +33,6 @@ const StudentDashboard = () => {
   const [isQuizOpen, setIsQuizOpen] = useState(false);
   const [goals, setGoals] = useState([]);
   const [isAddGoalOpen, setIsAddGoalOpen] = useState(false);
-  const [newGoalHistory, setNewGoalHistory] = useState([]);
   const [showGoals, setShowGoals] = useState(true);
   const [isEditingProfile, setIsEditingProfile] = useState(false);
   const [profileData, setProfileData] = useState({
@@ -47,16 +43,11 @@ const StudentDashboard = () => {
   });
   const [courses, setCourses] = useState([]);
   const [selectedCourse, setSelectedCourse] = useState(null);
-  const [isPreviewMode, setIsPreviewMode] = useState(false);
-  const [selectedFontSize, setSelectedFontSize] = useState("16px");
-  const [selectedColor, setSelectedColor] = useState("#000000");
-  const [isGoalSelectionMode, setIsGoalSelectionMode] = useState(false);
   const [isCourseSelectionMode, setIsCourseSelectionMode] = useState(false);
-  const [selectedGoals, setSelectedGoals] = useState([]);
-  const [showCourses, setShowCourses] = useState(true);
   const [selectedCourses, setSelectedCourses] = useState([]);
+  const [showCourses, setShowCourses] = useState(true);
   const [showProgress, setShowProgress] = useState(true);
-  const [newGoal, setNewGoal] = useState({ content: "", date: "" }); // Fix: Object instead of string
+  const [newGoal, setNewGoal] = useState({ content: "", date: "" });
 
   useEffect(() => {
     if (!user) {
@@ -69,7 +60,6 @@ const StudentDashboard = () => {
         course.students.includes(user.email)
       );
 
-      // Sync progress with courses
       setProgressData(fetchedProgress);
       setStreak(fetchedStreak);
       setGoals(fetchedGoals);
@@ -90,37 +80,11 @@ const StudentDashboard = () => {
         date: newGoal.date,
         done: false,
       };
-      console.log("Goal Data to Add:", goalData); // Debug input
       addGoal(user.email, goalData);
-      const updatedGoals = getGoals(user.email);
-      console.log("Updated Goals after adding:", updatedGoals); // Debug result
-      setGoals(updatedGoals);
+      setGoals(getGoals(user.email));
       setNewGoal({ content: "", date: "" });
       setIsAddGoalOpen(false);
     }
-  };
-
-  const handleUndo = () => {
-    if (newGoalHistory.length > 1) {
-      const previousContent = newGoalHistory[newGoalHistory.length - 2];
-      setNewGoal(previousContent);
-      setNewGoalHistory((prev) => prev.slice(0, -1));
-      editor?.commands.setContent(previousContent);
-    }
-  };
-
-  const handleRedo = () => {
-    if (editor?.can().redo()) {
-      editor.commands.redo();
-    }
-  };
-
-  const handleClear = () => {
-    setNewGoal("");
-    setNewGoalHistory([]);
-    setSelectedFontSize("16px");
-    setSelectedColor("#000000");
-    editor?.commands.setContent("");
   };
 
   const handleDeleteGoal = (index) => {
@@ -133,82 +97,35 @@ const StudentDashboard = () => {
     setGoals(getGoals(user.email));
   };
 
-  const handleToggleGoalSelectionMode = () => {
-    if (goals.length === 0) {
-      setIsGoalSelectionMode(false);
-      return;
-    }
-    setIsGoalSelectionMode(!isGoalSelectionMode);
-    setSelectedGoals([]);
-  };
-
   const handleToggleCourseSelectionMode = () => {
-    if (courses.length === 0) {
-      setIsCourseSelectionMode(false);
-      return;
-    }
     setIsCourseSelectionMode(!isCourseSelectionMode);
     setSelectedCourses([]);
   };
 
-  const handleSelectGoal = (index) => {
-    if (selectedGoals.includes(index)) {
-      setSelectedGoals(selectedGoals.filter((i) => i !== index));
-    } else {
-      setSelectedGoals([...selectedGoals, index]);
-    }
-  };
-
-  const handleSelectAllGoals = () => {
-    if (selectedGoals.length === goals.length) {
-      setSelectedGoals([]);
-    } else {
-      setSelectedGoals(goals.map((_, index) => index));
-    }
-  };
-
-  const handleDeleteSelectedGoals = () => {
-    if (selectedGoals.length > 0) {
-      deleteMultipleGoals(user.email, selectedGoals);
-      setGoals(getGoals(user.email));
-      setSelectedGoals([]);
-      setIsGoalSelectionMode(false);
-    }
-  };
-
   const handleSelectCourse = (index) => {
-    if (selectedCourses.includes(index)) {
-      setSelectedCourses(selectedCourses.filter((i) => i !== index));
-    } else {
-      setSelectedCourses([...selectedCourses, index]);
-    }
+    setSelectedCourses((prev) =>
+      prev.includes(index) ? prev.filter((i) => i !== index) : [...prev, index]
+    );
   };
 
   const handleSelectAllCourses = () => {
-    if (selectedCourses.length === courses.length) {
-      setSelectedCourses([]);
-    } else {
-      setSelectedCourses(courses.map((_, index) => index));
-    }
+    setSelectedCourses(
+      selectedCourses.length === courses.length
+        ? []
+        : courses.map((_, index) => index)
+    );
   };
 
   const handleMarkSelectedCoursesDone = async () => {
     if (selectedCourses.length > 0) {
       const courseIds = selectedCourses.map((index) => courses[index].id);
       const success = await markMultipleCoursesAsDone(courseIds);
-
       if (success) {
         setCourses((prev) =>
-          prev.map((course, index) =>
-            selectedCourses.includes(index) ? { ...course, done: true } : course
+          prev.map((course) =>
+            courseIds.includes(course.id) ? { ...course, done: true } : course
           )
         );
-
-        const firstSelectedIndex = selectedCourses[0];
-        const firstSelectedCourse = courses[firstSelectedIndex];
-        const teacher = getTeacherForCourse(firstSelectedCourse.teacherEmail);
-        setSelectedCourse({ ...firstSelectedCourse, teacher });
-
         setSelectedCourses([]);
         setIsCourseSelectionMode(false);
       }
@@ -222,9 +139,6 @@ const StudentDashboard = () => {
         course.id === courseId ? { ...course, done: true } : course
       )
     );
-    const course = courses.find((c) => c.id === courseId);
-    const teacher = getTeacherForCourse(course.teacherEmail);
-    setSelectedCourse({ ...course, teacher });
   };
 
   const handleEditProfile = () => {
@@ -236,36 +150,6 @@ const StudentDashboard = () => {
     const teacher = getTeacherForCourse(course.teacherEmail);
     setSelectedCourse({ ...course, teacher });
   };
-
-  const handleViewChapters = (course) => {
-    console.log(`Viewing chapters for ${course.name}`);
-    setSelectedCourse({ ...course });
-  };
-
-  // Debudging
-  useEffect(() => {
-    if (!user) {
-      navigate("/login");
-    } else {
-      const fetchedProgress = getProgressData(user.email, user.userType);
-      const fetchedStreak = getStreak(user.email);
-      const fetchedGoals = getGoals(user.email);
-
-      setProgressData(fetchedProgress);
-      setStreak(fetchedStreak);
-      setGoals(Array.isArray(fetchedGoals) ? fetchedGoals : []);
-      setProfileData({
-        firstName: user.firstName,
-        lastName: user.lastName,
-        gradeLevel: user.gradeLevel,
-        school: user.school,
-      });
-      const studentCourses = mockCourses.filter((course) =>
-        course.students.includes(user.email)
-      );
-      setCourses(studentCourses);
-    }
-  }, [user, navigate, getProgressData, getStreak, getGoals, mockCourses]);
 
   if (!user) return null;
 
@@ -280,9 +164,6 @@ const StudentDashboard = () => {
               src={StudentStudyingImage}
               alt="Student Studying"
               className="rounded-full w-32 h-32 md:w-48 md:h-48 mx-auto"
-              onError={() =>
-                console.error("Failed to load student studying image")
-              }
             />
           </div>
           <div className="text-2xl md:text-3xl font-bold mb-6 md:ml-4 mt-4">
@@ -318,67 +199,48 @@ const StudentDashboard = () => {
             <div className="bg-[var(--primary-bg-end)] p-6 rounded-lg max-w-md w-full">
               <h2 className="text-xl font-bold mb-4">Edit Profile</h2>
               <div className="space-y-4">
-                <div>
-                  <label className="block text-[var(--text-secondary)] mb-1">
-                    First Name:
-                  </label>
-                  <input
-                    type="text"
-                    value={profileData.firstName}
-                    onChange={(e) =>
-                      setProfileData({
-                        ...profileData,
-                        firstName: e.target.value,
-                      })
-                    }
-                    className="w-full bg-[var(--accent)] text-[var(--text-primary)] p-3 rounded-full"
-                  />
-                </div>
-                <div>
-                  <label className="block text-[var(--text-secondary)] mb-1">
-                    Last Name:
-                  </label>
-                  <input
-                    type="text"
-                    value={profileData.lastName}
-                    onChange={(e) =>
-                      setProfileData({
-                        ...profileData,
-                        lastName: e.target.value,
-                      })
-                    }
-                    className="w-full bg-[var(--accent)] text-[var(--text-primary)] p-3 rounded-full"
-                  />
-                </div>
-                <div>
-                  <label className="block text-[var(--text-secondary)] mb-1">
-                    Grade Level:
-                  </label>
-                  <input
-                    type="text"
-                    value={profileData.gradeLevel}
-                    onChange={(e) =>
-                      setProfileData({
-                        ...profileData,
-                        gradeLevel: e.target.value,
-                      })
-                    }
-                    className="w-full bg-[var(--accent)] text-[var(--text-primary)] p-3 rounded-full"
-                  />
-                </div>
-                <div>
-                  <label className="block text-[var(--text-secondary)] mb-1">
-                    School:
-                  </label>
-                  <input
-                    type="text"
-                    value={profileData.school}
-                    onChange={(e) =>
-                      setProfileData({ ...profileData, school: e.target.value })
-                    }
-                    className="w-full bg-[var(--accent)] text-[var(--text-primary)] p-3 rounded-full"
-                  />
-                </div>
+                <input
+                  type="text"
+                  value={profileData.firstName}
+                  onChange={(e) =>
+                    setProfileData({
+                      ...profileData,
+                      firstName: e.target.value,
+                    })
+                  }
+                  placeholder="First Name"
+                  className="w-full bg-[var(--accent)] text-[var(--text-primary)] p-3 rounded-full"
+                />
+                <input
+                  type="text"
+                  value={profileData.lastName}
+                  onChange={(e) =>
+                    setProfileData({ ...profileData, lastName: e.target.value })
+                  }
+                  placeholder="Last Name"
+                  className="w-full bg-[var(--accent)] text-[var(--text-primary)] p-3 rounded-full"
+                />
+                <input
+                  type="text"
+                  value={profileData.gradeLevel}
+                  onChange={(e) =>
+                    setProfileData({
+                      ...profileData,
+                      gradeLevel: e.target.value,
+                    })
+                  }
+                  placeholder="Grade Level"
+                  className="w-full bg-[var(--accent)] text-[var(--text-primary)] p-3 rounded-full"
+                />
+                <input
+                  type="text"
+                  value={profileData.school}
+                  onChange={(e) =>
+                    setProfileData({ ...profileData, school: e.target.value })
+                  }
+                  placeholder="School"
+                  className="w-full bg-[var(--accent)] text-[var(--text-primary)] p-3 rounded-full"
+                />
                 <div className="flex gap-4">
                   <Button onClick={handleEditProfile} className="w-full">
                     Save
@@ -409,7 +271,6 @@ const StudentDashboard = () => {
                 }}
                 className="space-y-6"
               >
-                {/* Date Selection */}
                 <div>
                   <label
                     htmlFor="goalDate"
@@ -420,20 +281,15 @@ const StudentDashboard = () => {
                   <input
                     type="date"
                     id="goalDate"
-                    value={newGoal.date || ""}
+                    value={newGoal.date}
                     onChange={(e) =>
-                      setNewGoal((prev) => ({
-                        ...prev,
-                        date: e.target.value,
-                      }))
+                      setNewGoal({ ...newGoal, date: e.target.value })
                     }
-                    min={new Date().toISOString().split("T")[0]} // Prevents past dates
-                    className="w-full bg-[var(--primary-bg-start)] text-[var(--text-primary)] p-3 rounded-lg border border-[var(--accent)] focus:outline-none focus:ring-2 focus:ring-[var(--accent-dark)]"
+                    min={new Date().toISOString().split("T")[0]}
+                    className="w-full bg-[var(--primary-bg-start)] text-[var(--text-primary)] p-3 rounded-lg border border-[var(--accent)]"
                     required
                   />
                 </div>
-
-                {/* Textarea */}
                 <div>
                   <label
                     htmlFor="goalContent"
@@ -443,29 +299,24 @@ const StudentDashboard = () => {
                   </label>
                   <textarea
                     id="goalContent"
-                    value={newGoal.content || ""}
+                    value={newGoal.content}
                     onChange={(e) =>
-                      setNewGoal((prev) => ({
-                        ...prev,
-                        content: e.target.value, // Should always be a string
-                      }))
+                      setNewGoal({ ...newGoal, content: e.target.value })
                     }
                     placeholder="Enter your goal here..."
-                    className="w-full min-h-[150px] bg-[var(--primary-bg-start)] text-[var(--text-primary)] p-4 rounded-lg border border-[var(--accent)] focus:outline-none focus:ring-2 focus:ring-[var(--accent-dark)] resize-y"
+                    className="w-full min-h-[150px] bg-[var(--primary-bg-start)] text-[var(--text-primary)] p-4 rounded-lg border border-[var(--accent)]"
                     maxLength={1000}
                     required
                   />
                   <p className="text-sm text-[var(--text-secondary)] mt-1">
-                    Characters: {(newGoal.content || "").length} / 1000
+                    Characters: {newGoal.content.length} / 1000
                   </p>
                 </div>
-
-                {/* Buttons */}
                 <div className="flex gap-4">
                   <Button
                     type="submit"
-                    className="w-full bg-green-500 hover:bg-green-600 transition-colors duration-200"
-                    disabled={!newGoal.content?.trim() || !newGoal.date}
+                    className="w-full bg-green-500 hover:bg-green-600"
+                    disabled={!newGoal.content.trim() || !newGoal.date}
                   >
                     Save Goal
                   </Button>
@@ -475,7 +326,7 @@ const StudentDashboard = () => {
                       setIsAddGoalOpen(false);
                       setNewGoal({ content: "", date: "" });
                     }}
-                    className="w-full bg-red-500 hover:bg-red-600 transition-colors duration-200"
+                    className="w-full bg-red-500 hover:bg-red-600"
                   >
                     Cancel
                   </Button>
@@ -486,26 +337,21 @@ const StudentDashboard = () => {
         )}
 
         {/* Progress Section */}
-        <section className="mb-12 mt-20 ">
-          <div className="shadow-lg  transform transition-all duration-300 hover:scale-105 max-w-4xl mx-auto bg-[var(--primary-bg-end)] rounded-lg">
+        <section className="mb-12 mt-20">
+          <div className="shadow-lg transform transition-all duration-300 hover:scale-105 max-w-4xl mx-auto bg-[var(--primary-bg-end)] rounded-lg">
             <div className="flex justify-between items-center mb-4">
               <h2 className="text-xl md:text-2xl font-bold p-6">
                 Current Progress
               </h2>
-              <div className="flex items-center  justify-end  pl-6 pt-6 pr-6 pb-9">
-                <Button
-                  onClick={() => setShowProgress(!showProgress)}
-                  className="bg-[var(--accent)] hover:bg-cyan-500 md:w-90 w-35"
-                >
-                  {showProgress ? "Hide" : "View"}
-                </Button>
-              </div>
+              <Button
+                onClick={() => setShowProgress(!showProgress)}
+                className="bg-[var(--accent)] hover:bg-cyan-500 md:w-90 w-35 mr-6"
+              >
+                {showProgress ? "Hide" : "View"}
+              </Button>
             </div>
             {showProgress && (
-              <div
-                className=" p-6
-"
-              >
+              <div className="p-6">
                 {progressData.length > 0 ? (
                   progressData.map((data, index) => (
                     <ProgressBar
@@ -526,29 +372,27 @@ const StudentDashboard = () => {
 
         {/* Courses Section */}
         <section className="max-w-4xl mx-auto mb-12">
-          <div className="bg-[var(--primary-bg-end)] pr-6 rounded-lg shadow-lg  transform transition-all duration-300 hover:scale-105">
+          <div className="bg-[var(--primary-bg-end)] pr-6 rounded-lg shadow-lg transform transition-all duration-300 hover:scale-105">
             <div className="flex justify-between items-center mb-4">
               <h2 className="text-xl md:text-2xl font-bold p-6">
                 Current Courses
               </h2>
-              <div className="flex gap-2">
+              <div className="flex gap-2 mr-6">
                 {showCourses && (
                   <Button
                     onClick={handleToggleCourseSelectionMode}
-                    className={` hover:bg-cyan-500 w-35 ${
+                    className={`hover:bg-cyan-500 w-35 ${
                       isCourseSelectionMode
                         ? "bg-red-500 hover:bg-red-600"
-                        : "bg-[var(--accent)] hover:bg-cyan-500 w-35 gap-2 mr-2"
+                        : "bg-[var(--accent)]"
                     }`}
                   >
-                    {isCourseSelectionMode ? "Cancel" : "See More"}
+                    {isCourseSelectionMode ? "Cancel" : "Select"}
                   </Button>
                 )}
                 <Button
                   onClick={() => setShowCourses(!showCourses)}
-                  className={`bg-[var(--accent)] hover:bg-cyan-500 w-35  ${
-                    !showCourses ? "md:w-90" : "w-35"
-                  }`}
+                  className="bg-[var(--accent)] hover:bg-cyan-500 w-35"
                 >
                   {showCourses ? "Hide" : "View"}
                 </Button>
@@ -556,13 +400,13 @@ const StudentDashboard = () => {
             </div>
 
             {isCourseSelectionMode && (
-              <div className="mb-4 flex gap-2">
+              <div className="mb-4 flex gap-2 ml-6">
                 <Button
                   onClick={handleSelectAllCourses}
                   className="bg-blue-500 hover:bg-blue-600 w-35"
                 >
                   {selectedCourses.length === courses.length
-                    ? "Cancel All"
+                    ? "Deselect All"
                     : "Select All"}
                 </Button>
                 {selectedCourses.length > 0 && (
@@ -599,12 +443,7 @@ const StudentDashboard = () => {
                             />
                           )}
                           <span
-                            onClick={() =>
-                              !isCourseSelectionMode &&
-                              handleViewCourseDetails(
-                                navigate(`/course/${course.id}`)
-                              )
-                            }
+                            onClick={() => navigate(`/course/${course.id}`)}
                             className={`flex-1 ${
                               !isCourseSelectionMode
                                 ? "cursor-pointer hover:text-[var(--accent)]"
@@ -618,16 +457,17 @@ const StudentDashboard = () => {
                           <div className="flex gap-2 items-center">
                             <Button
                               onClick={() => {
-                                !course.done && handleMarkCourseDone(course.id);
+                                if (!course.done)
+                                  handleMarkCourseDone(course.id);
                               }}
-                              className={` flex justify-center items-center text-sm px-2 py-1 h-8 hover:bg-cyan-500 w-35 ${
+                              className={`flex justify-center items-center text-sm px-2 py-1 h-8 w-35 ${
                                 course.done
                                   ? "bg-gray-400 cursor-not-allowed"
                                   : "bg-green-500 hover:bg-green-600"
                               }`}
                               disabled={course.done}
                             >
-                              {course.done ? "100%" : "Done"}
+                              {course.done ? "Completed" : "Done"}
                             </Button>
                             <Button
                               onClick={() => navigate(`/course/${course.id}`)}
@@ -641,7 +481,7 @@ const StudentDashboard = () => {
                     ))}
                   </ul>
                 ) : (
-                  <p className="text-center text-[var(--text-secondary)]">
+                  <p className="text-center text-[var(--text-secondary)] p-6">
                     You are not enrolled in any courses.
                   </p>
                 )}
@@ -663,13 +503,11 @@ const StudentDashboard = () => {
               </p>
               <p className="mb-4">
                 <strong>School:</strong>{" "}
-                {selectedCourse.teacher
-                  ? selectedCourse.teacher.school
-                  : "Unknown"}
+                {selectedCourse.teacher?.school || "Unknown"}
               </p>
               <Button
                 onClick={() => setSelectedCourse(null)}
-                className="w-full hover:bg-cyan-500 "
+                className="w-full hover:bg-cyan-500"
               >
                 Close
               </Button>
@@ -679,58 +517,16 @@ const StudentDashboard = () => {
 
         {/* Goals Section */}
         <section className="max-w-4xl mx-auto mb-12">
-          <h2 className="text-xl md:text-2xl font-bold text-center mb-6">
-            Your Goals
-          </h2>
           <div className="bg-[var(--primary-bg-end)] p-6 rounded-lg shadow-lg transform transition-all duration-300 hover:scale-105">
             <div className="flex justify-between items-center mb-4">
-              <h3 className="text-lg font-semibold">Current Goals</h3>
-              <div className="flex gap-2 mr-2">
-                {showGoals && (
-                  <Button
-                    onClick={handleToggleGoalSelectionMode}
-                    className={` hover:bg-cyan-500 w-35 ${
-                      isGoalSelectionMode
-                        ? "bg-red-500 hover:bg-red-600"
-                        : "bg-[var(--accent)] "
-                    }`}
-                  >
-                    {isGoalSelectionMode ? "Cancel" : "Select"}
-                  </Button>
-                )}
-
-                <Button
-                  onClick={() => setShowGoals(!showGoals)}
-                  className={`bg-[var(--accent)] hover:bg-cyan-500 w-35  ${
-                    !showGoals ? "md:w-90" : "w-35"
-                  }`}
-                >
-                  {showGoals ? "Hide" : "View"}
-                </Button>
-              </div>
+              <h2 className="text-xl md:text-2xl font-bold">Your Goals</h2>
+              <Button
+                onClick={() => setShowGoals(!showGoals)}
+                className="bg-[var(--accent)] hover:bg-cyan-500 w-35"
+              >
+                {showGoals ? "Hide" : "View"}
+              </Button>
             </div>
-
-            {isGoalSelectionMode && (
-              <div className="mb-4 flex gap-2">
-                <Button
-                  onClick={handleSelectAllGoals}
-                  className="bg-blue-500 hover:bg-blue-600"
-                >
-                  {selectedGoals.length === goals.length
-                    ? "Deselect All"
-                    : "Select All"}
-                </Button>
-                {selectedGoals.length > 0 && (
-                  <Button
-                    onClick={handleDeleteSelectedGoals}
-                    className="bg-red-500 hover:bg-red-600"
-                  >
-                    Delete Selected ({selectedGoals.length})
-                  </Button>
-                )}
-              </div>
-            )}
-
             {showGoals && (
               <>
                 {goals.length > 0 ? (
@@ -738,56 +534,39 @@ const StudentDashboard = () => {
                     {goals.map((goal, index) => (
                       <li
                         key={index}
-                        className={`flex justify-between items-center p-2 rounded-lg ${
-                          selectedGoals.includes(index)
-                            ? "bg-[var(--accent)] text-[var(--text-primary)]"
-                            : "text-[var(--text-secondary)]"
-                        } ${goal.done ? "line-through opacity-75" : ""}`}
+                        className={`flex justify-between items-center p-2 rounded-lg text-[var(--text-secondary)] ${
+                          goal.done ? "line-through opacity-75" : ""
+                        }`}
                       >
-                        <div className="flex items-center gap-2 flex-1">
-                          {isGoalSelectionMode && (
-                            <input
-                              type="checkbox"
-                              checked={selectedGoals.includes(index)}
-                              onChange={() => handleSelectGoal(index)}
-                              className="w-5 h-5"
-                            />
-                          )}
-                          <span className="flex-1">
-                            {typeof goal.content === "string"
-                              ? goal.content
-                              : "Invalid content"}{" "}
-                            {/* Handle non-string content */}
-                            <span className="text-sm ml-2 text-gray-400">
-                              {goal.date
-                                ? `(Due: ${new Date(
-                                    goal.date
-                                  ).toLocaleDateString()})`
-                                : "(No date)"}
-                            </span>
+                        <span className="flex-1">
+                          {goal.content}{" "}
+                          <span className="text-sm ml-2 text-gray-400">
+                            {goal.date
+                              ? `(Due: ${new Date(
+                                  goal.date
+                                ).toLocaleDateString()})`
+                              : "(No date)"}
                           </span>
+                        </span>
+                        <div className="flex gap-2">
+                          <Button
+                            onClick={() => handleMarkGoalAsDone(index)}
+                            className={`text-sm px-2 py-1 w-35 ${
+                              goal.done
+                                ? "bg-gray-400 cursor-not-allowed"
+                                : "bg-green-500 hover:bg-green-600"
+                            }`}
+                            disabled={goal.done}
+                          >
+                            Done
+                          </Button>
+                          <Button
+                            onClick={() => handleDeleteGoal(index)}
+                            className="bg-red-500 hover:bg-red-600 text-sm px-2 py-1 w-35"
+                          >
+                            Delete
+                          </Button>
                         </div>
-                        {!isGoalSelectionMode && (
-                          <div className="flex gap-2 mr--1">
-                            <Button
-                              onClick={() => handleMarkGoalAsDone(index)}
-                              className={`text-sm px-2 py-1  w-35  ${
-                                goal.done
-                                  ? "bg-gray-400 cursor-not-allowed"
-                                  : "bg-green-500 hover:bg-cyan-500"
-                              }`}
-                              disabled={goal.done}
-                            >
-                              Done
-                            </Button>
-                            <Button
-                              onClick={() => handleDeleteGoal(index)}
-                              className="bg-red-500 hover:bg-cyan-500 w-35  text-sm px-2 py-1"
-                            >
-                              Delete
-                            </Button>
-                          </div>
-                        )}
                       </li>
                     ))}
                   </ul>
@@ -806,7 +585,7 @@ const StudentDashboard = () => {
           <div className="flex-1">
             <StreakMotivator streak={streak} />
           </div>
-          <div className="flex-1 bg-[var(--primary-bg-end)] p-6 rounded-lg text-center shadow-lg  transform transition-all duration-300 hover:scale-105">
+          <div className="flex-1 bg-[var(--primary-bg-end)] p-6 rounded-lg text-center shadow-lg transform transition-all duration-300 hover:scale-105">
             <h3 className="text-lg font-semibold mb-4">Daily Quiz Challenge</h3>
             <Button onClick={() => setIsQuizOpen(true)} className="w-90">
               Take a Quiz
@@ -820,7 +599,6 @@ const StudentDashboard = () => {
         onClose={() => {
           setIsQuizOpen(false);
           resetQuiz();
-          // Refresh progress data after quiz completion to include quiz score
           setProgressData(getProgressData(user.email, user.userType));
         }}
       />

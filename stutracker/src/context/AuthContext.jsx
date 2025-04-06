@@ -22,51 +22,78 @@ const defaultMockUsers = [
     role: "Math Teacher",
     school: "Sample School",
   },
+  {
+    email: "student2@example.com",
+    password: "@Password#123",
+    firstName: "Alice",
+    lastName: "Johnson",
+    userType: "student",
+    gradeLevel: "10",
+    school: "Sample School",
+  },
 ];
 
 const defaultMockStudentProgress = {
   "student@example.com": [
-    { subject: "Math", percentage: 75 },
+    { subject: "Mathematics", percentage: 75 },
     { subject: "Science", percentage: 60 },
-    { subject: "English", percentage: 85 },
   ],
+  "student2@example.com": [{ subject: "Physics", percentage: 80 }],
 };
 
 const defaultMockTeacherClassProgress = {
   "teacher@example.com": [
-    { subject: "Class Average - Math", percentage: 82 },
-    { subject: "Class Average - Science", percentage: 78 },
-    { subject: "Class Average - English", percentage: 85 },
+    { subject: "Mathematics", percentage: 82 },
+    { subject: "Physics", percentage: 78 },
   ],
 };
 
 const defaultMockStreaks = {
   "student@example.com": 5,
   "teacher@example.com": 3,
+  "student2@example.com": 2,
 };
 
 const defaultMockCourses = [
   {
-    id: "course1",
-    name: "Math",
+    id: "1",
+    name: "Mathematics",
     teacherEmail: "teacher@example.com",
     students: ["student@example.com"],
     done: false,
+    type: "Core",
+    createdAt: "2024-01-01T10:00:00Z",
+    deleted: false,
   },
   {
-    id: "course2",
+    id: "2",
+    name: "Physics",
+    teacherEmail: "teacher@example.com",
+    students: ["student2@example.com"],
+    done: true,
+    type: "Elective",
+    createdAt: "2024-02-01T10:00:00Z",
+    deleted: false,
+  },
+  {
+    id: "3",
     name: "Science",
     teacherEmail: "teacher@example.com",
     students: [],
     done: false,
+    type: "Core",
+    createdAt: "2024-03-01T10:00:00Z",
+    deleted: true, // Soft-deleted course
   },
 ];
 
 const defaultMockGoals = {
-  "student@example.com": [],
+  "student@example.com": [
+    { content: "Complete Math homework", date: "2024-04-01", done: false },
+  ],
+  "student2@example.com": [],
 };
 
-// Enhanced quiz data with chapter numbering
 const defaultMockQuizzes = {
   courseBased: {
     courses: [
@@ -91,91 +118,19 @@ const defaultMockQuizzes = {
               correctAnswer: 1,
             },
           ],
-          "Ch-3": [
-            {
-              id: 3,
-              question: "What is the area of a circle with radius 3?",
-              options: ["6π", "9π", "3π", "12π"],
-              correctAnswer: 1,
-            },
-          ],
-          "Ch-4": [
-            {
-              id: 4,
-              question: "How many sides does a pentagon have?",
-              options: ["4", "5", "6", "7"],
-              correctAnswer: 1,
-            },
-          ],
-          "Ch-5": [
-            {
-              id: 5,
-              question: "What is the derivative of x²?",
-              options: ["x", "2x", "x³/3", "2"],
-              correctAnswer: 1,
-            },
-          ],
-          "Ch-6": [
-            {
-              id: 6,
-              question: "What is the value of π (pi) to two decimal places?",
-              options: ["3.14", "3.16", "3.12", "3.18"],
-              correctAnswer: 0,
-            },
-          ],
         },
       },
       {
         id: 2,
-        name: "Science",
-        chapters: ["All", "Ch-1", "Ch-2", "Ch-3", "Ch-4", "Ch-5", "Ch-6"],
+        name: "Physics",
+        chapters: ["All", "Ch-1", "Ch-2", "Ch-3"],
         questions: {
           "Ch-1": [
             {
-              id: 7,
+              id: 3,
               question: "What is the unit of force?",
               options: ["Joule", "Newton", "Watt", "Pascal"],
               correctAnswer: 1,
-            },
-          ],
-          "Ch-2": [
-            {
-              id: 8,
-              question: "What is the acceleration due to gravity on Earth?",
-              options: ["9.8 m/s²", "10 m/s²", "8.9 m/s²", "11 m/s²"],
-              correctAnswer: 0,
-            },
-          ],
-          "Ch-3": [
-            {
-              id: 9,
-              question: "What is the chemical symbol for gold?",
-              options: ["Go", "Gd", "Au", "Ag"],
-              correctAnswer: 2,
-            },
-          ],
-          "Ch-4": [
-            {
-              id: 10,
-              question: "What is the powerhouse of the cell?",
-              options: ["Nucleus", "Mitochondria", "Ribosome", "Cell membrane"],
-              correctAnswer: 1,
-            },
-          ],
-          "Ch-5": [
-            {
-              id: 11,
-              question: "Which planet is known as the Red Planet?",
-              options: ["Venus", "Mars", "Jupiter", "Saturn"],
-              correctAnswer: 1,
-            },
-          ],
-          "Ch-6": [
-            {
-              id: 12,
-              question: "What is the atomic number of Oxygen?",
-              options: ["6", "7", "8", "9"],
-              correctAnswer: 2,
             },
           ],
         },
@@ -190,64 +145,14 @@ const defaultMockQuizzes = {
         courses: [
           {
             name: "General Knowledge",
-            chapters: ["All", "Ch-1", "Ch-2", "Ch-3", "Ch-4", "Ch-5", "Ch-6"],
+            chapters: ["All", "Ch-1", "Ch-2"],
             questions: {
               "Ch-1": [
                 {
-                  id: 13,
-                  question: "In which year did World War II end?",
-                  options: ["1943", "1945", "1947", "1950"],
-                  correctAnswer: 1,
-                },
-              ],
-              "Ch-2": [
-                {
-                  id: 14,
-                  question: "Who was the first president of the United States?",
-                  options: [
-                    "Thomas Jefferson",
-                    "George Washington",
-                    "Abraham Lincoln",
-                    "John Adams",
-                  ],
-                  correctAnswer: 1,
-                },
-              ],
-              "Ch-3": [
-                {
-                  id: 15,
-                  question: "What is the chemical symbol for water?",
-                  options: ["H2O", "CO2", "NaCl", "O2"],
-                  correctAnswer: 0,
-                },
-              ],
-              "Ch-4": [
-                {
-                  id: 16,
-                  question: "Who painted the Mona Lisa?",
-                  options: [
-                    "Vincent van Gogh",
-                    "Pablo Picasso",
-                    "Leonardo da Vinci",
-                    "Michelangelo",
-                  ],
-                  correctAnswer: 2,
-                },
-              ],
-              "Ch-5": [
-                {
-                  id: 17,
+                  id: 4,
                   question: "What is the capital of France?",
                   options: ["London", "Berlin", "Paris", "Madrid"],
                   correctAnswer: 2,
-                },
-              ],
-              "Ch-6": [
-                {
-                  id: 18,
-                  question: "Which ocean is the largest?",
-                  options: ["Atlantic", "Indian", "Arctic", "Pacific"],
-                  correctAnswer: 3,
                 },
               ],
             },
@@ -256,28 +161,6 @@ const defaultMockQuizzes = {
       },
     ],
   },
-};
-
-const deleteMultipleCourses = (courseIds) => {
-  const coursesToDelete = mockCourses.filter((c) => courseIds.includes(c.id));
-
-  setMockCourses((prev) =>
-    prev.filter((course) => !courseIds.includes(course.id))
-  );
-
-  // Remove these courses from all students' progress
-  setMockStudentProgress((prev) => {
-    const updated = { ...prev };
-    const courseNames = coursesToDelete.map((c) => c.name);
-
-    Object.keys(updated).forEach((email) => {
-      updated[email] = updated[email].filter(
-        (p) => !courseNames.includes(p.subject)
-      );
-    });
-
-    return updated;
-  });
 };
 
 export const AuthProvider = ({ children }) => {
@@ -323,59 +206,36 @@ export const AuthProvider = ({ children }) => {
   const [quizCompleted, setQuizCompleted] = useState(false);
   const [currentSelection, setCurrentSelection] = useState(null);
 
+  // Persist data to localStorage
   useEffect(() => {
-    const handleStorageChange = (event) => {
-      if (event.key === "mockCourses") {
-        setMockCourses(
-          event.newValue ? JSON.parse(event.newValue) : defaultMockCourses
-        );
-      } else if (event.key === "mockQuizzes") {
-        setQuizzes(
-          event.newValue ? JSON.parse(event.newValue) : defaultMockQuizzes
-        );
-      }
-    };
-    window.addEventListener("storage", handleStorageChange);
-    return () => window.removeEventListener("storage", handleStorageChange);
-  }, []);
+    localStorage.setItem("mockUsers", JSON.stringify(mockUsers));
+  }, [mockUsers]);
+  useEffect(() => {
+    localStorage.setItem(
+      "mockStudentProgress",
+      JSON.stringify(mockStudentProgress)
+    );
+  }, [mockStudentProgress]);
+  useEffect(() => {
+    localStorage.setItem(
+      "mockTeacherClassProgress",
+      JSON.stringify(mockTeacherClassProgress)
+    );
+  }, [mockTeacherClassProgress]);
+  useEffect(() => {
+    localStorage.setItem("mockStreaks", JSON.stringify(mockStreaks));
+  }, [mockStreaks]);
+  useEffect(() => {
+    localStorage.setItem("mockCourses", JSON.stringify(mockCourses));
+  }, [mockCourses]);
+  useEffect(() => {
+    localStorage.setItem("mockGoals", JSON.stringify(mockGoals));
+  }, [mockGoals]);
+  useEffect(() => {
+    localStorage.setItem("mockQuizzes", JSON.stringify(quizzes));
+  }, [quizzes]);
 
-  useEffect(
-    () => localStorage.setItem("mockUsers", JSON.stringify(mockUsers)),
-    [mockUsers]
-  );
-  useEffect(
-    () =>
-      localStorage.setItem(
-        "mockStudentProgress",
-        JSON.stringify(mockStudentProgress)
-      ),
-    [mockStudentProgress]
-  );
-  useEffect(
-    () =>
-      localStorage.setItem(
-        "mockTeacherClassProgress",
-        JSON.stringify(mockTeacherClassProgress)
-      ),
-    [mockTeacherClassProgress]
-  );
-  useEffect(
-    () => localStorage.setItem("mockStreaks", JSON.stringify(mockStreaks)),
-    [mockStreaks]
-  );
-  useEffect(
-    () => localStorage.setItem("mockCourses", JSON.stringify(mockCourses)),
-    [mockCourses]
-  );
-  useEffect(
-    () => localStorage.setItem("mockGoals", JSON.stringify(mockGoals)),
-    [mockGoals]
-  );
-  useEffect(
-    () => localStorage.setItem("mockQuizzes", JSON.stringify(quizzes)),
-    [quizzes]
-  );
-
+  // Load user and token from localStorage on mount
   useEffect(() => {
     const storedToken = localStorage.getItem("token");
     const storedUser = localStorage.getItem("user");
@@ -385,6 +245,7 @@ export const AuthProvider = ({ children }) => {
     }
   }, []);
 
+  // Authentication Functions
   const login = (email, password) => {
     const foundUser = mockUsers.find(
       (u) => u.email === email && u.password === password
@@ -401,33 +262,23 @@ export const AuthProvider = ({ children }) => {
   };
 
   const signup = (userData) => {
-    // Check if user already exists
     if (mockUsers.some((u) => u.email === userData.email)) {
       throw new Error("User with this email already exists");
     }
-
     const newUser = { ...userData };
-    setMockUsers((prevUsers) => [...prevUsers, newUser]);
+    setMockUsers((prev) => [...prev, newUser]);
 
-    // Initialize student progress if it's a student
     if (newUser.userType === "student") {
       setMockStudentProgress((prev) => ({
         ...prev,
-        [newUser.email]: mockCourses
-          .filter((course) => course.students.includes(newUser.email))
-          .map((course) => ({ subject: course.name, percentage: 0 })),
+        [newUser.email]: [],
       }));
       setMockGoals((prev) => ({ ...prev, [newUser.email]: [] }));
       setMockStreaks((prev) => ({ ...prev, [newUser.email]: 0 }));
     } else if (newUser.userType === "teacher") {
-      // Initialize teacher data
       setMockTeacherClassProgress((prev) => ({
         ...prev,
-        [newUser.email]: [
-          { subject: "Class Average - Math", percentage: 0 },
-          { subject: "Class Average - Science", percentage: 0 },
-          { subject: "Class Average - English", percentage: 0 },
-        ],
+        [newUser.email]: [],
       }));
       setMockStreaks((prev) => ({ ...prev, [newUser.email]: 0 }));
     }
@@ -437,7 +288,6 @@ export const AuthProvider = ({ children }) => {
     localStorage.setItem("user", JSON.stringify(newUser));
     setToken(mockToken);
     setUser(newUser);
-
     return true;
   };
 
@@ -446,249 +296,6 @@ export const AuthProvider = ({ children }) => {
     localStorage.removeItem("user");
     setToken(null);
     setUser(null);
-  };
-
-  const getProgressData = (email, userType) => {
-    if (userType === "student") {
-      const studentCourses = mockCourses.filter((course) =>
-        course.students.includes(email)
-      );
-      const progress = mockStudentProgress[email] || [];
-      return studentCourses.map((course) => {
-        const existingProgress = progress.find(
-          (p) => p.subject === course.name
-        );
-        return {
-          subject: course.name,
-          percentage: existingProgress ? existingProgress.percentage : 0,
-        };
-      });
-    } else if (userType === "teacher") {
-      const teacherCourses = mockCourses.filter(
-        (course) => course.teacherEmail === email
-      );
-
-      // Calculate average progress for each of the teacher's courses
-      return teacherCourses.map((course) => {
-        const studentsInCourse = mockUsers.filter(
-          (user) =>
-            user.userType === "student" && course.students.includes(user.email)
-        );
-
-        const averageProgress =
-          studentsInCourse.length > 0
-            ? Math.round(
-                studentsInCourse.reduce((sum, student) => {
-                  const studentProgress =
-                    mockStudentProgress[student.email] || [];
-                  const courseProgress = studentProgress.find(
-                    (p) => p.subject === course.name
-                  );
-                  return sum + (courseProgress?.percentage || 0);
-                }, 0) / studentsInCourse.length
-              )
-            : 0;
-
-        return {
-          subject: course.name,
-          percentage: averageProgress,
-        };
-      });
-    }
-    return [];
-  };
-
-  const getStreak = (email) => mockStreaks[email] || 0;
-
-  const addCourse = (courseName, teacherEmail) => {
-    const newCourse = {
-      id: `course${mockCourses.length + 1}`,
-      name: courseName,
-      teacherEmail,
-      students: [],
-      done: false,
-    };
-    setMockCourses((prev) => [...prev, newCourse]);
-  };
-
-  const deleteCourse = (courseId) => {
-    const course = mockCourses.find((c) => c.id === courseId);
-    if (!course) return;
-
-    setMockCourses((prev) => prev.filter((course) => course.id !== courseId));
-
-    // Remove this course from all students' progress
-    setMockStudentProgress((prev) => {
-      const updated = { ...prev };
-      Object.keys(updated).forEach((email) => {
-        updated[email] = updated[email].filter(
-          (p) => p.subject !== course.name
-        );
-      });
-      return updated;
-    });
-  };
-
-  const getCourses = (teacherEmail) =>
-    mockCourses.filter((course) => course.teacherEmail === teacherEmail);
-
-  const addStudentToCourse = (courseId, studentEmail) => {
-    return new Promise((resolve, reject) => {
-      try {
-        setMockCourses((prev) =>
-          prev.map((course) =>
-            course.id === courseId && !course.students.includes(studentEmail)
-              ? { ...course, students: [...course.students, studentEmail] }
-              : course
-          )
-        );
-
-        // Initialize progress for the student if they don't have any for this course
-        setMockStudentProgress((prev) => {
-          const course = mockCourses.find((c) => c.id === courseId);
-          if (!course) return prev;
-
-          const updated = { ...prev };
-          if (!updated[studentEmail]) {
-            updated[studentEmail] = [];
-          }
-
-          if (!updated[studentEmail].some((p) => p.subject === course.name)) {
-            updated[studentEmail].push({
-              subject: course.name,
-              percentage: 0,
-            });
-          }
-
-          return updated;
-        });
-
-        resolve();
-      } catch (error) {
-        reject(error);
-      }
-    });
-  };
-
-  const removeStudentFromCourse = (courseId, studentEmail) => {
-    setMockCourses((prev) =>
-      prev.map((course) =>
-        course.id === courseId
-          ? {
-              ...course,
-              students: course.students.filter(
-                (email) => email !== studentEmail
-              ),
-            }
-          : course
-      )
-    );
-
-    // Also remove the course progress for this student
-    setMockStudentProgress((prev) => {
-      const updated = { ...prev };
-      const course = mockCourses.find((c) => c.id === courseId);
-      if (course && updated[studentEmail]) {
-        updated[studentEmail] = updated[studentEmail].filter(
-          (p) => p.subject !== course.name
-        );
-      }
-      return updated;
-    });
-  };
-
-  const getStudentsInCourse = (courseId) => {
-    const course = mockCourses.find((course) => course.id === courseId);
-    return course
-      ? mockUsers.filter(
-          (user) =>
-            user.userType === "student" && course.students.includes(user.email)
-        )
-      : [];
-  };
-
-  const getStudentProgress = (studentEmail) =>
-    mockStudentProgress[studentEmail] || [];
-
-  const getStudentCourses = (studentEmail) =>
-    mockCourses.filter((course) => course.students.includes(studentEmail));
-
-  const getTeacherForCourse = (teacherEmail) =>
-    mockUsers.find(
-      (user) => user.email === teacherEmail && user.userType === "teacher"
-    );
-
-  const addGoal = (studentEmail, goal) => {
-    // Change parameter name to 'goal'
-    setMockGoals((prev) => ({
-      ...prev,
-      [studentEmail]: [
-        ...(prev[studentEmail] || []),
-        {
-          content: goal.content, // Extract string content
-          date: goal.date,
-          done: goal.done || false,
-        },
-      ],
-    }));
-  };
-
-  const deleteGoal = (studentEmail, goalIndex) => {
-    setMockGoals((prev) => ({
-      ...prev,
-      [studentEmail]: (prev[studentEmail] || []).filter(
-        (_, index) => index !== goalIndex
-      ),
-    }));
-  };
-
-  const deleteMultipleGoals = (studentEmail, goalIndices) => {
-    setMockGoals((prev) => ({
-      ...prev,
-      [studentEmail]: (prev[studentEmail] || []).filter(
-        (_, index) => !goalIndices.includes(index)
-      ),
-    }));
-  };
-
-  const getGoals = (studentEmail) => {
-    const goals = mockGoals[studentEmail] || [];
-    return goals.map((goal) => ({
-      content: typeof goal.content === "string" ? goal.content : "",
-      date: goal.date || "",
-      done: goal.done || false,
-    }));
-  };
-
-  const markGoalAsDone = (studentEmail, goalIndex) => {
-    setMockGoals((prev) => ({
-      ...prev,
-      [studentEmail]: (prev[studentEmail] || []).map((goal, index) =>
-        index === goalIndex ? { ...goal, done: true } : goal
-      ),
-    }));
-  };
-
-  const markCourseAsDone = (courseId) => {
-    setMockCourses((prev) =>
-      prev.map((course) =>
-        course.id === courseId ? { ...course, done: true } : course
-      )
-    );
-  };
-
-  const markMultipleCoursesAsDone = async (courseIds) => {
-    try {
-      setMockCourses((prev) =>
-        prev.map((course) =>
-          courseIds.includes(course.id) ? { ...course, done: true } : course
-        )
-      );
-      return true;
-    } catch (error) {
-      console.error("Error marking courses as done:", error);
-      return false;
-    }
   };
 
   const updateProfile = (email, updatedData) => {
@@ -703,7 +310,236 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
-  const fetchQuizQuestions = async (selection) => {
+  // Course Management Functions
+  const addCourse = (name, teacherEmail, type = "Core") => {
+    const newCourse = {
+      id: String(mockCourses.length + 1),
+      name,
+      teacherEmail,
+      students: [],
+      done: false,
+      type,
+      createdAt: new Date().toISOString(),
+      deleted: false,
+    };
+    setMockCourses((prev) => [...prev, newCourse]);
+    setMockTeacherClassProgress((prev) => ({
+      ...prev,
+      [teacherEmail]: [
+        ...(prev[teacherEmail] || []),
+        { subject: name, percentage: 0 },
+      ],
+    }));
+  };
+
+  const deleteCourse = (courseId) => {
+    const course = mockCourses.find((c) => c.id === courseId);
+    if (!course) return;
+    setMockCourses((prev) =>
+      prev.map((c) => (c.id === courseId ? { ...c, deleted: true } : c))
+    );
+    setMockStudentProgress((prev) => {
+      const updated = { ...prev };
+      Object.keys(updated).forEach((email) => {
+        updated[email] = updated[email].filter(
+          (p) => p.subject !== course.name
+        );
+      });
+      return updated;
+    });
+  };
+
+  const deleteMultipleCourses = (courseIds) => {
+    const coursesToDelete = mockCourses.filter((c) => courseIds.includes(c.id));
+    setMockCourses((prev) =>
+      prev.map((c) => (courseIds.includes(c.id) ? { ...c, deleted: true } : c))
+    );
+    setMockStudentProgress((prev) => {
+      const updated = { ...prev };
+      const courseNames = coursesToDelete.map((c) => c.name);
+      Object.keys(updated).forEach((email) => {
+        updated[email] = updated[email].filter(
+          (p) => !courseNames.includes(p.subject)
+        );
+      });
+      return updated;
+    });
+  };
+
+  const getCourses = (teacherEmail) =>
+    mockCourses.filter((c) => c.teacherEmail === teacherEmail && !c.deleted);
+
+  const markCourseAsDone = (courseId) => {
+    setMockCourses((prev) =>
+      prev.map((c) => (c.id === courseId ? { ...c, done: true } : c))
+    );
+  };
+
+  const markMultipleCoursesAsDone = (courseIds) => {
+    setMockCourses((prev) =>
+      prev.map((c) => (courseIds.includes(c.id) ? { ...c, done: true } : c))
+    );
+  };
+
+  // Student Management Functions
+  const addStudentToCourse = (courseId, studentEmail) => {
+    const course = mockCourses.find((c) => c.id === courseId && !c.deleted);
+    if (!course || course.students.includes(studentEmail)) return;
+    setMockCourses((prev) =>
+      prev.map((c) =>
+        c.id === courseId
+          ? { ...c, students: [...c.students, studentEmail] }
+          : c
+      )
+    );
+    setMockStudentProgress((prev) => ({
+      ...prev,
+      [studentEmail]: [
+        ...(prev[studentEmail] || []),
+        { subject: course.name, percentage: 0 },
+      ],
+    }));
+  };
+
+  const removeStudentFromCourse = (courseId, studentEmail) => {
+    const course = mockCourses.find((c) => c.id === courseId && !c.deleted);
+    if (!course) return;
+    setMockCourses((prev) =>
+      prev.map((c) =>
+        c.id === courseId
+          ? { ...c, students: c.students.filter((e) => e !== studentEmail) }
+          : c
+      )
+    );
+    setMockStudentProgress((prev) => ({
+      ...prev,
+      [studentEmail]: (prev[studentEmail] || []).filter(
+        (p) => p.subject !== course.name
+      ),
+    }));
+  };
+
+  const enrollStudentsToCourses = (studentEmails, courseIds) => {
+    const validCourses = mockCourses.filter(
+      (c) => courseIds.includes(c.id) && !c.deleted
+    );
+    setMockCourses((prev) =>
+      prev.map((c) =>
+        courseIds.includes(c.id)
+          ? { ...c, students: [...new Set([...c.students, ...studentEmails])] }
+          : c
+      )
+    );
+    setMockStudentProgress((prev) => {
+      const updated = { ...prev };
+      studentEmails.forEach((email) => {
+        if (!updated[email]) updated[email] = [];
+        validCourses.forEach((course) => {
+          if (!updated[email].some((p) => p.subject === course.name)) {
+            updated[email].push({ subject: course.name, percentage: 0 });
+          }
+        });
+      });
+      return updated;
+    });
+  };
+
+  const getStudentsInCourse = (courseId) => {
+    const course = mockCourses.find((c) => c.id === courseId && !c.deleted);
+    return course
+      ? mockUsers.filter(
+          (u) => u.userType === "student" && course.students.includes(u.email)
+        )
+      : [];
+  };
+
+  const isStudentRegistered = (email) =>
+    mockUsers.some((u) => u.userType === "student" && u.email === email);
+
+  // Progress and Streaks
+  const getProgressData = (email, userType) => {
+    if (userType === "student") {
+      return mockStudentProgress[email] || [];
+    } else if (userType === "teacher") {
+      const teacherCourses = mockCourses.filter(
+        (c) => c.teacherEmail === email && !c.deleted
+      );
+      return teacherCourses.map((course) => {
+        const students = getStudentsInCourse(course.id);
+        const avg =
+          students.length > 0
+            ? students.reduce((sum, s) => {
+                const prog =
+                  mockStudentProgress[s.email]?.find(
+                    (p) => p.subject === course.name
+                  )?.percentage || 0;
+                return sum + prog;
+              }, 0) / students.length
+            : 0;
+        return { subject: course.name, percentage: Math.round(avg) };
+      });
+    }
+    return [];
+  };
+
+  const getStudentProgressForCourse = (studentEmail, courseId) => {
+    const course = mockCourses.find((c) => c.id === courseId && !c.deleted);
+    if (!course) return [];
+    return (
+      mockStudentProgress[studentEmail]?.filter(
+        (p) => p.subject === course.name
+      ) || []
+    );
+  };
+
+  const getStreak = (email) => mockStreaks[email] || 0;
+
+  // Goals Management
+  const addGoal = (studentEmail, goal) => {
+    setMockGoals((prev) => ({
+      ...prev,
+      [studentEmail]: [
+        ...(prev[studentEmail] || []),
+        {
+          content: goal.content,
+          date: goal.date || new Date().toISOString(),
+          done: false,
+        },
+      ],
+    }));
+  };
+
+  const deleteGoal = (studentEmail, goalIndex) => {
+    setMockGoals((prev) => ({
+      ...prev,
+      [studentEmail]: (prev[studentEmail] || []).filter(
+        (_, i) => i !== goalIndex
+      ),
+    }));
+  };
+
+  const deleteMultipleGoals = (studentEmail, goalIndices) => {
+    setMockGoals((prev) => ({
+      ...prev,
+      [studentEmail]: (prev[studentEmail] || []).filter(
+        (_, i) => !goalIndices.includes(i)
+      ),
+    }));
+  };
+
+  const getGoals = (studentEmail) => mockGoals[studentEmail] || [];
+
+  const markGoalAsDone = (studentEmail, goalIndex) => {
+    setMockGoals((prev) => ({
+      ...prev,
+      [studentEmail]: (prev[studentEmail] || []).map((g, i) =>
+        i === goalIndex ? { ...g, done: true } : g
+      ),
+    }));
+  };
+
+  // Quiz Management
+  const fetchQuizQuestions = (selection) => {
     setCurrentSelection(selection);
     let questions = [];
     if (selection.type === "courseBased") {
@@ -712,10 +548,7 @@ export const AuthProvider = ({ children }) => {
       );
       if (course && course.questions) {
         if (selection.chapter === "All") {
-          questions = Object.keys(course.questions)
-            .filter((chapter) => chapter !== "All")
-            .map((chapter) => course.questions[chapter] || [])
-            .flat();
+          questions = Object.values(course.questions).flat();
         } else {
           questions = course.questions[selection.chapter] || [];
         }
@@ -728,10 +561,7 @@ export const AuthProvider = ({ children }) => {
         const course = api.courses.find((c) => c.name === selection.course);
         if (course && course.questions) {
           if (selection.chapter === "All") {
-            questions = Object.keys(course.questions)
-              .filter((chapter) => chapter !== "All")
-              .map((chapter) => course.questions[chapter] || [])
-              .flat();
+            questions = Object.values(course.questions).flat();
           } else {
             questions = course.questions[selection.chapter] || [];
           }
@@ -748,47 +578,34 @@ export const AuthProvider = ({ children }) => {
   const submitQuizAnswer = (questionId, selectedOption) => {
     const question = quizQuestions.find((q) => q.id === questionId);
     if (!question) return;
-
     const isCorrect = question.correctAnswer === selectedOption;
     const scoreIncrement = isCorrect ? 100 / quizQuestions.length : 0;
-    setQuizScore((prev) => {
-      const newScore = prev + scoreIncrement;
-      if (
-        currentQuestionIndex === quizQuestions.length - 1 &&
-        user?.userType === "student" &&
-        currentSelection?.course
-      ) {
-        setMockStudentProgress((prevProgress) => {
-          const updatedProgress = { ...prevProgress };
-          const studentProgress = updatedProgress[user.email] || [];
-          const subjectIndex = studentProgress.findIndex(
-            (s) => s.subject === currentSelection.course
-          );
-          const finalScore = Math.round(newScore);
+    setQuizScore((prev) => prev + scoreIncrement);
 
-          if (subjectIndex >= 0) {
-            updatedProgress[user.email] = studentProgress.map((subject, idx) =>
-              idx === subjectIndex
-                ? { ...subject, percentage: Math.min(finalScore, 100) }
-                : subject
-            );
-          } else {
-            updatedProgress[user.email] = [
-              ...studentProgress,
-              {
-                subject: currentSelection.course,
-                percentage: Math.min(finalScore, 100),
-              },
-            ];
-          }
-          return updatedProgress;
-        });
-        setQuizCompleted(true);
-      }
-      return newScore;
-    });
-
-    if (currentQuestionIndex < quizQuestions.length - 1) {
+    if (
+      currentQuestionIndex === quizQuestions.length - 1 &&
+      user?.userType === "student"
+    ) {
+      setQuizCompleted(true);
+      const finalScore = Math.round(quizScore + scoreIncrement);
+      setMockStudentProgress((prev) => {
+        const updated = { ...prev };
+        const prog = updated[user.email] || [];
+        const idx = prog.findIndex(
+          (p) => p.subject === currentSelection.course
+        );
+        if (idx >= 0) {
+          prog[idx].percentage = Math.max(prog[idx].percentage, finalScore);
+        } else {
+          prog.push({
+            subject: currentSelection.course,
+            percentage: finalScore,
+          });
+        }
+        updated[user.email] = prog;
+        return updated;
+      });
+    } else if (currentQuestionIndex < quizQuestions.length - 1) {
       setCurrentQuestionIndex((prev) => prev + 1);
     }
   };
@@ -796,30 +613,23 @@ export const AuthProvider = ({ children }) => {
   const completeQuiz = () => {
     setQuizCompleted(true);
     if (user?.userType === "student" && currentSelection?.course) {
+      const finalScore = Math.round(quizScore);
       setMockStudentProgress((prev) => {
-        const updatedProgress = { ...prev };
-        const studentProgress = updatedProgress[user.email] || [];
-        const subjectIndex = studentProgress.findIndex(
-          (s) => s.subject === currentSelection.course
+        const updated = { ...prev };
+        const prog = updated[user.email] || [];
+        const idx = prog.findIndex(
+          (p) => p.subject === currentSelection.course
         );
-        const finalScore = Math.round(quizScore);
-
-        if (subjectIndex >= 0) {
-          updatedProgress[user.email] = studentProgress.map((subject, idx) =>
-            idx === subjectIndex
-              ? { ...subject, percentage: Math.min(finalScore, 100) }
-              : subject
-          );
+        if (idx >= 0) {
+          prog[idx].percentage = Math.max(prog[idx].percentage, finalScore);
         } else {
-          updatedProgress[user.email] = [
-            ...studentProgress,
-            {
-              subject: currentSelection.course,
-              percentage: Math.min(finalScore, 100),
-            },
-          ];
+          prog.push({
+            subject: currentSelection.course,
+            percentage: finalScore,
+          });
         }
-        return updatedProgress;
+        updated[user.email] = prog;
+        return updated;
       });
     }
     return quizScore;
@@ -835,21 +645,17 @@ export const AuthProvider = ({ children }) => {
 
   const addQuestionsToCourse = (courseId, chapter, newQuestions) => {
     setQuizzes((prev) => {
-      const updatedCourses = prev.courseBased.courses.map((course) => {
-        if (course.id === courseId) {
-          return {
-            ...course,
-            questions: {
-              ...course.questions,
-              [chapter]: [
-                ...(course.questions[chapter] || []),
-                ...newQuestions,
-              ],
-            },
-          };
-        }
-        return course;
-      });
+      const updatedCourses = prev.courseBased.courses.map((c) =>
+        c.id === courseId
+          ? {
+              ...c,
+              questions: {
+                ...c.questions,
+                [chapter]: [...(c.questions[chapter] || []), ...newQuestions],
+              },
+            }
+          : c
+      );
       return {
         ...prev,
         courseBased: { ...prev.courseBased, courses: updatedCourses },
@@ -857,138 +663,92 @@ export const AuthProvider = ({ children }) => {
     });
   };
 
-  const getStudentProgressForCourse = (studentEmail, courseId) => {
-    const course = mockCourses.find((c) => c.id === courseId);
-    if (!course) return [];
+  // Utility Functions
+  const getStudentCourses = (studentEmail) =>
+    mockCourses.filter((c) => c.students.includes(studentEmail) && !c.deleted);
 
-    const studentProgress = mockStudentProgress[studentEmail] || [];
-    return studentProgress.filter((p) => p.subject === course.name);
-  };
+  const getTeacherForCourse = (teacherEmail) =>
+    mockUsers.find((u) => u.email === teacherEmail && u.userType === "teacher");
 
-  const studentExists = (email) => {
-    return mockUsers.some((u) => u.email === email && u.userType === "student");
-  };
+  const studentExists = (email) =>
+    mockUsers.some((u) => u.email === email && u.userType === "student");
 
-  const isStudentInCourse = (courseId, studentEmail) => {
-    const course = mockCourses.find((c) => c.id === courseId);
-    return course?.students.includes(studentEmail) || false;
-  };
+  const isStudentInCourse = (courseId, studentEmail) =>
+    mockCourses.some(
+      (c) =>
+        c.id === courseId && c.students.includes(studentEmail) && !c.deleted
+    );
 
-  const isStudentRegistered = (email) => {
-    return mockUsers.some(
-      (user) => user.email === email && user.userType === "student"
+  const getStudentDetails = (email) =>
+    mockUsers.find((u) => u.email === email && u.userType === "student");
+
+  const getAllCoursesEver = () => mockCourses;
+
+  const getAllStudentsEver = () => {
+    const allEmails = new Set(mockCourses.flatMap((c) => c.students));
+    return mockUsers.filter(
+      (u) => allEmails.has(u.email) && u.userType === "student"
     );
   };
 
-  const getStudentDetails = (email) => {
-    return mockUsers.find(
-      (user) => user.email === email && user.userType === "student"
-    );
+  // Context Value
+  const value = {
+    user,
+    token,
+    login,
+    signup,
+    logout,
+    updateProfile,
+    mockUsers,
+    mockCourses,
+    getCourses,
+    addCourse,
+    deleteCourse,
+    deleteMultipleCourses,
+    markCourseAsDone,
+    markMultipleCoursesAsDone,
+    addStudentToCourse,
+    removeStudentFromCourse,
+    enrollStudentsToCourses,
+    getStudentsInCourse,
+    isStudentRegistered,
+    getProgressData,
+    getStudentProgressForCourse,
+    getStreak,
+    mockStudentProgress,
+    mockTeacherClassProgress,
+    mockStreaks,
+    addGoal,
+    deleteGoal,
+    deleteMultipleGoals,
+    getGoals,
+    markGoalAsDone,
+    mockGoals,
+    quizzes,
+    fetchQuizQuestions,
+    submitQuizAnswer,
+    completeQuiz,
+    resetQuiz,
+    quizQuestions,
+    currentQuestionIndex,
+    quizScore,
+    quizCompleted,
+    currentSelection,
+    addQuestionsToCourse,
+    getStudentCourses,
+    getTeacherForCourse,
+    studentExists,
+    isStudentInCourse,
+    getStudentDetails,
+    getAllCoursesEver,
+    getAllStudentsEver,
   };
 
-  const deleteMultipleCourses = (courseIds) => {
-    try {
-      // If you're using mock data, update your mockCourses array
-      if (mockCourses) {
-        setMockCourses((prev) =>
-          prev.filter((course) => !courseIds.includes(course.id))
-        );
-      }
-
-      // actual goes API goes here
-
-      // await api.deleteMultipleCourses(courseIds);
-
-      return true;
-    } catch (error) {
-      console.error("Error deleting courses:", error);
-      return false;
-    }
-  };
-
-  const enrollStudentsToCourses = async (studentEmails, courseIds) => {
-    try {
-      // Mock implementation - replace with actual API calls
-      console.log(
-        `Enrolling ${studentEmails.length} students to ${courseIds.length} courses`
-      );
-
-      // If using mock data:
-      if (mockCourses) {
-        setMockCourses((prev) =>
-          prev.map((course) => {
-            if (courseIds.includes(course.id)) {
-              return {
-                ...course,
-                students: [...new Set([...course.students, ...studentEmails])],
-              };
-            }
-            return course;
-          })
-        );
-      }
-
-      return true;
-    } catch (error) {
-      console.error("Enrollment error:", error);
-      return false;
-    }
-  };
-
-  return (
-    <AuthContext.Provider
-      value={{
-        user,
-        addCourse,
-        getCourses,
-        studentExists,
-        isStudentInCourse,
-        isStudentRegistered,
-        getStudentDetails,
-        token,
-        login,
-        signup,
-        logout,
-        getProgressData,
-        getStreak,
-
-        deleteCourse,
-
-        addStudentToCourse,
-        removeStudentFromCourse,
-        getStudentsInCourse,
-        getStudentProgress,
-        getStudentCourses,
-        getTeacherForCourse,
-        markCourseAsDone,
-        markMultipleCoursesAsDone,
-        addGoal,
-        deleteGoal,
-        deleteMultipleGoals,
-        getGoals,
-        markGoalAsDone,
-        updateProfile,
-        mockCourses,
-        mockUsers,
-        quizzes,
-        fetchQuizQuestions,
-        submitQuizAnswer,
-        completeQuiz,
-        resetQuiz,
-        quizQuestions,
-        currentQuestionIndex,
-        quizScore,
-        quizCompleted,
-        currentSelection,
-        addQuestionsToCourse,
-        deleteMultipleCourses,
-        getStudentProgressForCourse,
-        enrollStudentsToCourses,
-      }}
-    >
-      {children}
-    </AuthContext.Provider>
-  );
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 };
 
-export const useAuth = () => useContext(AuthContext);
+export const useAuth = () => {
+  const context = useContext(AuthContext);
+  if (!context) throw new Error("useAuth must be used within an AuthProvider");
+  return context;
+};

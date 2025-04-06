@@ -17,7 +17,7 @@ const Contact = () => {
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    // Mock form submission logic (replace with real API call in a production app)
+    // Mock form submission logic
     console.log("Form submitted:", formData);
     setFormStatus("Thank you for your message! We’ll get back to you soon.");
     setFormData({ name: "", email: "", message: "" });
