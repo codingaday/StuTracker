@@ -377,11 +377,11 @@ const StudentDashboard = () => {
               <h2 className="text-xl md:text-2xl font-bold p-6">
                 Current Courses
               </h2>
-              <div className="flex gap-2 mr-6">
+              <div className="flex gap-2 mr-1">
                 {showCourses && (
                   <Button
                     onClick={handleToggleCourseSelectionMode}
-                    className={`hover:bg-cyan-500 w-35 ${
+                    className={`hover:bg-cyan-500 w-35  ${
                       isCourseSelectionMode
                         ? "bg-red-500 hover:bg-red-600"
                         : "bg-[var(--accent)]"
@@ -392,7 +392,9 @@ const StudentDashboard = () => {
                 )}
                 <Button
                   onClick={() => setShowCourses(!showCourses)}
-                  className="bg-[var(--accent)] hover:bg-cyan-500 w-35"
+                  className={`"bg-[var(--accent)] hover:bg-cyan-500 w-35 ${
+                    !showCourses ? "md:w-90" : "md:w-35"
+                  }`}
                 >
                   {showCourses ? "Hide" : "View"}
                 </Button>
@@ -522,7 +524,9 @@ const StudentDashboard = () => {
               <h2 className="text-xl md:text-2xl font-bold">Your Goals</h2>
               <Button
                 onClick={() => setShowGoals(!showGoals)}
-                className="bg-[var(--accent)] hover:bg-cyan-500 w-35"
+                className={`bg-[var(--accent)] hover:bg-cyan-500 w-35 ${
+                  showGoals ? "md:w-35" : "md:w-90"
+                }`}
               >
                 {showGoals ? "Hide" : "View"}
               </Button>
