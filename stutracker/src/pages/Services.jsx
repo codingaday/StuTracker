@@ -4,109 +4,87 @@ import Button from "../components/Button";
 
 const Services = () => {
   return (
-    <div className="min-h-screen flex flex-col">
+    <div className="min-h-screen flex flex-col bg-[var(--primary-bg-start)]">
       <Navbar />
-      <main className=" flex-1 mt-16">
+      <main className="flex-1 mt-16">
         {/* Hero Section */}
-        <section className="bg-gradient-to-r from-[var(--primary-bg-start)] to-[var(--primary-bg-end)] py-16 text-center">
+        <section className="bg-gradient-to-r from-[var(--primary-bg-start)] to-[var(--primary-bg-end)] py-20 text-center">
           <div className="max-w-4xl mx-auto px-4">
-            <h1 className="text-4xl md:text-5xl font-bold text-[var(--text-primary)] mb-4">
-              Our Services
+            <h1 className="text-5xl md:text-6xl font-extrabold text-[var(--text-primary)] mb-4 glow-text">
+              Our <span className="text-[var(--accent)]">Services</span>
             </h1>
-            <p className="text-lg md:text-xl text-[var(--text-secondary)] mb-6">
-              Discover how StuTracker can help students and teachers achieve
-              academic success with our powerful features.
+            <p className="text-xl md:text-2xl text-[var(--text-secondary)] max-w-2xl mx-auto font-light">
+              Discover how StuTracker helps students and teachers achieve more
+              through innovation and simplicity.
             </p>
           </div>
         </section>
 
-        {/* Services Section */}
-        <section className="py-12">
-          <div className="max-w-4xl mx-auto px-4">
-            <h2 className="text-3xl md:text-4xl font-bold text-[var(--text-primary)] text-center mb-8">
+        {/* Services Overview */}
+        <section className="py-16">
+          <div className="max-w-5xl mx-auto px-4">
+            <h2 className="text-4xl font-bold text-center text-[var(--text-primary)] mb-12 glow-text">
               What We Offer
             </h2>
-            <div className="space-y-8">
-              {/* Service 1: Progress Tracking */}
-              <div className="bg-[var(--primary-bg-end)] p-6 rounded-lg shadow-lg">
-                <h3 className="text-2xl font-semibold text-[var(--text-primary)] mb-3">
-                  Progress Tracking
-                </h3>
-                <p className="text-lg text-[var(--text-secondary)] leading-relaxed">
-                  Students can monitor their academic progress with detailed,
-                  subject-wise progress bars. Teachers can view class-wide
-                  performance to identify areas for improvement, ensuring
-                  everyone stays on track.
-                </p>
-              </div>
-
-              {/* Service 2: Course Management */}
-              <div className="bg-[var(--primary-bg-end)] p-6 rounded-lg shadow-lg">
-                <h3 className="text-2xl font-semibold text-[var(--text-primary)] mb-3">
-                  Course Management
-                </h3>
-                <p className="text-lg text-[var(--text-secondary)] leading-relaxed">
-                  Teachers can easily create, manage, and assign students to
-                  courses. Students can view their enrolled courses, access
-                  details like teacher information, and stay organized with
-                  their academic schedule.
-                </p>
-              </div>
-
-              {/* Service 3: Goal Setting */}
-              <div className="bg-[var(--primary-bg-end)] p-6 rounded-lg shadow-lg">
-                <h3 className="text-2xl font-semibold text-[var(--text-primary)] mb-3">
-                  Goal Setting
-                </h3>
-                <p className="text-lg text-[var(--text-secondary)] leading-relaxed">
-                  Students can set and track personal academic goals, helping
-                  them stay motivated and focused. This feature encourages
-                  self-discipline and provides a clear path to success.
-                </p>
-              </div>
-
-              {/* Service 4: Streak Motivator */}
-              <div className="bg-[var(--primary-bg-end)] p-6 rounded-lg shadow-lg">
-                <h3 className="text-2xl font-semibold text-[var(--text-primary)] mb-3">
-                  Streak Motivator
-                </h3>
-                <p className="text-lg text-[var(--text-secondary)] leading-relaxed">
-                  Our streak motivator tracks daily engagement, encouraging
-                  students to maintain consistent study habits. It’s a fun way
-                  to build momentum and stay committed to learning.
-                </p>
-              </div>
-
-              {/* Service 5: Quiz Challenges */}
-              <div className="bg-[var(--primary-bg-end)] p-6 rounded-lg shadow-lg">
-                <h3 className="text-2xl font-semibold text-[var(--text-primary)] mb-3">
-                  Quiz Challenges
-                </h3>
-                <p className="text-lg text-[var(--text-secondary)] leading-relaxed">
-                  Students can participate in daily quiz challenges to test
-                  their knowledge and reinforce learning. This feature makes
-                  studying interactive and engaging.
-                </p>
-              </div>
+            <div className="grid md:grid-cols-2 gap-8">
+              {[
+                {
+                  title: "Progress Tracking",
+                  description:
+                    "Track academic progress visually with subject-specific bars and teacher overviews to boost classroom performance.",
+                },
+                {
+                  title: "Course Management",
+                  description:
+                    "Seamlessly create, organize, and assign courses. Students stay informed and structured with course access and updates.",
+                },
+                {
+                  title: "Goal Setting",
+                  description:
+                    "Empower students to set, monitor, and accomplish personal academic milestones while building discipline.",
+                },
+                {
+                  title: "Streak Motivator",
+                  description:
+                    "Keep motivation high with daily engagement streaks. Foster consistency in learning through gamified habit tracking.",
+                },
+                {
+                  title: "Quiz Challenges",
+                  description:
+                    "Daily quizzes based on course content and API integrations help reinforce learning through interactive tests.",
+                },
+              ].map((service, index) => (
+                <div
+                  key={index}
+                  className="bg-[var(--primary-bg-end)] p-6 rounded-xl shadow-lg hover:shadow-2xl transition duration-300"
+                >
+                  <h3 className="text-2xl font-semibold text-[var(--text-primary)] mb-3">
+                    {service.title}
+                  </h3>
+                  <p className="text-lg text-[var(--text-secondary)] leading-relaxed">
+                    {service.description}
+                  </p>
+                </div>
+              ))}
             </div>
           </div>
         </section>
 
-        {/* Call to Action Section */}
-        <section className="py-12 text-center bg-[var(--primary-bg-end)]">
+        {/* CTA Section */}
+        <section className="py-20 bg-gradient-to-r from-[var(--primary-bg-start)] to-[var(--primary-bg-end)] text-center">
           <div className="max-w-4xl mx-auto px-4">
-            <h2 className="text-3xl md:text-4xl font-bold text-[var(--text-primary)] mb-6">
-              Start Using StuTracker Today
+            <h2 className="text-4xl md:text-5xl font-bold text-[var(--text-primary)] mb-6 glow-text">
+              Experience the Future of Learning
             </h2>
-            <p className="text-lg text-[var(--text-secondary)] mb-6">
-              Ready to take your academic journey to the next level? Sign up now
-              and explore all that StuTracker has to offer!
+            <p className="text-xl text-[var(--text-secondary)] mb-8">
+              Join the growing StuTracker community and transform your academic
+              journey.
             </p>
             <Button
               onClick={() => (window.location.href = "/signup")}
-              className="bg-[var(--accent)] hover:bg-[var(--accent-dark)] text-[var(--text-primary)] px-6 py-3 rounded-full"
+              className="bg-[var(--accent)] hover:bg-cyan-500 text-white px-10 py-4 rounded-full shadow-lg glow-button transform transition-all duration-300 hover:scale-110"
             >
-              Sign Up Now
+              Get Started
             </Button>
           </div>
         </section>

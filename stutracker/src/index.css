@@ -173,3 +173,97 @@ canvas {
   padding: 40px;
   text-align: center;
 }
+
+/* Glowing Text */
+.glow-text {
+  text-shadow: 0 0 10px var(--accent), 0 0 20px var(--accent),
+    0 0 30px var(--accent);
+}
+
+/* Glowing Button */
+.glow-button {
+  box-shadow: 0 0 15px var(--accent), 0 0 25px var(--accent);
+}
+
+/* 3D Flip Card */
+.perspective-1000 {
+  perspective: 1000px;
+}
+
+.backface-hidden {
+  backface-visibility: hidden;
+}
+
+.rotate-y-180 {
+  transform: rotateY(180deg);
+}
+
+/* Tech Stack Scroll Animation */
+@keyframes techScroll {
+  0% {
+    transform: translateX(0);
+  }
+  100% {
+    transform: translateX(-50%);
+  }
+}
+
+.animate-tech-scroll {
+  display: flex;
+  animation: techScroll 20s linear infinite;
+}
+
+/* Slow Pulse Animation */
+@keyframes pulseSlow {
+  0%,
+  100% {
+    opacity: 0.2;
+  }
+  50% {
+    opacity: 0.5;
+  }
+}
+
+.animate-pulse-slow {
+  animation: pulseSlow 4s ease-in-out infinite;
+}
+
+/* Glowing Text */
+.glow-text {
+  text-shadow: 0 0 10px var(--accent), 0 0 20px var(--accent),
+    0 0 30px var(--accent);
+}
+
+/* Glowing Button and Input */
+.glow-button,
+.glow-input {
+  box-shadow: 0 0 15px var(--accent), 0 0 25px var(--accent);
+}
+
+/* 3D Flip Card */
+.perspective-1000 {
+  perspective: 1000px;
+}
+
+.backface-hidden {
+  backface-visibility: hidden;
+}
+
+.rotate-y-180 {
+  transform: rotateY(180deg);
+}
+
+/* Slow Pulse Animation */
+@keyframes pulseSlow {
+  0%,
+  100% {
+    opacity: 0.2;
+  }
+  50% {
+    opacity: 0.5;
+  }
+}
+
+.animate-pulse-slow {
+  animation: pulseSlow 4s ease-in-out infinite;
+}

@@ -21,7 +21,8 @@ import CoursesList from "./components/CoursesList";
 import DeletedStudents from "./components/DeletedStudents";
 import DeletedCourses from "./components/DeletedCourses";
 import StudentCourses from "./components/StudentCourses";
-
+import StudentCoursesList from "./components/StudentCoursesList";
+import StudentCoursesDetail from "./components/StudentCoursesDetail";
 const App = () => {
   return (
     <AuthProvider>
@@ -43,11 +44,29 @@ const App = () => {
           />
 
           <Route path="/students-list" element={<StudentsList />} />
-          <Route path="/courses-list" element={<CoursesList />} />
+          {/* <Route path="/courses-list" element={<CoursesList />} /> */}
           <Route path="/deleted-students-list" element={<DeletedStudents />} />
           <Route path="/deleted-courses-list" element={<DeletedCourses />} />
-          <Route path="/student-courses/:email" element={<StudentCourses />} />
 
+          <Route
+            path="/student/:id/courses"
+            element={
+              <ProtectedRoute>
+                <StudentCoursesList />
+              </ProtectedRoute>
+            }
+          />
+
+          <Route
+            path="/admin/student/:studentEmail/courses"
+            element={
+              <ProtectedRoute>
+                <StudentCoursesDetail />
+              </ProtectedRoute>
+            }
+          />
+
+          <Route path="/teacher/courses" element={<CoursesList />} />
           {/* Protected Routes for Teachers */}
           <Route path="/course/:courseId" element={<CoursePage />} />
           {/* Placeholder Routes for Navigation Links */}

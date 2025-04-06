@@ -6,6 +6,7 @@ import Footer from "../components/Footer";
 import ProgressBar from "../components/ProgressBar";
 import Button from "../components/Button";
 import TeacherTeachingImage from "/images/dashboard-teacher-teaching.png";
+
 import {
   FiTrash2,
   FiBookOpen,
@@ -58,6 +59,7 @@ const TeacherDashboard = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [suggestedEmails, setSuggestedEmails] = useState([]);
   const [selectedStudents, setSelectedStudents] = useState([]);
+  const [selectedOverallStudents, setSelectedOverallStudents] = useState([]);
   const [selectedCourseAction, setSelectedCourseAction] = useState(null);
   const [selectedStudentAction, setSelectedStudentAction] = useState(null);
   const [selectedFile, setSelectedFile] = useState(null);
@@ -86,6 +88,15 @@ const TeacherDashboard = () => {
   const [overallSortOrderCourses, setOverallSortOrderCourses] = useState("asc");
   const [isExporting, setIsExporting] = useState(false);
   const [studentFilter, setStudentFilter] = useState("all");
+  const [isOverallStudentActionsOpen, setIsOverallStudentActionsOpen] =
+    useState(false);
+
+  useEffect(() => {
+    setShowOverallStatus(false),
+      setShowProgress(false),
+      setShowCourses(false),
+      setShowStudents(false);
+  }, []);
 
   useEffect(() => {
     if (!user) {
@@ -155,10 +166,6 @@ const TeacherDashboard = () => {
     }
 
     addCourse(newCourseName, user.email);
-    if (selectedFile) {
-      console.log("Uploading file:", selectedFile);
-      console.log("File content preview:", filePreview);
-    }
 
     setNewCourseName("");
     setSelectedFile(null);
@@ -191,12 +198,18 @@ const TeacherDashboard = () => {
       return;
     }
 
+    const course = courses.find((c) => c.id === selectedCourse);
+    if (course.students.includes(newStudentEmail)) {
+      alert("This student is already enrolled in the course.");
+      setNewStudentEmail("");
+      return;
+    }
+
     try {
       await addStudentToCourse(selectedCourse, newStudentEmail);
       setCourseStudents(getStudentsInCourse(selectedCourse));
       setNewStudentEmail("");
     } catch (error) {
-      console.error("Failed to add student:", error);
       alert("Failed to add student. Please try again.");
     }
   };
@@ -213,7 +226,6 @@ const TeacherDashboard = () => {
       );
       if (expandedStudentEmail === studentEmail) setExpandedStudentEmail(null);
     } catch (error) {
-      console.error("Failed to remove student:", error);
       alert("Failed to remove student. Please try again.");
     }
   };
@@ -228,6 +240,14 @@ const TeacherDashboard = () => {
 
   const toggleStudentSelection = (studentEmail) => {
     setSelectedStudents((prev) =>
+      prev.includes(studentEmail)
+        ? prev.filter((email) => email !== studentEmail)
+        : [...prev, studentEmail]
+    );
+  };
+
+  const toggleOverallStudentSelection = (studentEmail) => {
+    setSelectedOverallStudents((prev) =>
       prev.includes(studentEmail)
         ? prev.filter((email) => email !== studentEmail)
         : [...prev, studentEmail]
@@ -254,6 +274,18 @@ const TeacherDashboard = () => {
     setIsStudentActionsOpen(false);
   };
 
+  const handleSelectAllOverallStudents = () => {
+    const allStudentEmails = getOverallCoursesStatus().filteredStudents.map(
+      (student) => student.email
+    );
+    setSelectedOverallStudents(
+      selectedOverallStudents.length === allStudentEmails.length
+        ? []
+        : allStudentEmails
+    );
+    setIsOverallStudentActionsOpen(false);
+  };
+
   const handleDeleteSelectedCourses = async () => {
     if (selectedCourses.length === 0) return;
 
@@ -276,7 +308,6 @@ const TeacherDashboard = () => {
         setSelectedCourseAction("deleteselectedcourses");
         setIsCourseActionsOpen(false);
       } catch (error) {
-        console.error("Error deleting courses:", error);
         alert("Failed to delete courses. Please try again.");
       }
     }
@@ -297,7 +328,6 @@ const TeacherDashboard = () => {
         setSelectedCourseAction("deletecourse");
         setIsCourseActionsOpen(false);
       } catch (error) {
-        console.error("Error deleting course:", error);
         alert("Failed to delete course. Please try again.");
       }
     }
@@ -323,8 +353,32 @@ const TeacherDashboard = () => {
         setSelectedStudentAction("deleteselectedstudents");
         setIsStudentActionsOpen(false);
       } catch (error) {
-        console.error("Failed to remove students:", error);
         alert("Failed to remove students. Please try again.");
+      }
+    }
+  };
+
+  const handleDeleteSelectedOverallStudents = async () => {
+    if (selectedOverallStudents.length === 0) return;
+
+    if (
+      window.confirm(
+        `Are you sure you want to remove ${selectedOverallStudents.length} selected student(s) from all their courses?`
+      )
+    ) {
+      try {
+        await Promise.all(
+          selectedOverallStudents.map((email) =>
+            courses
+              .filter((course) => course.students.includes(email))
+              .map((course) => removeStudentFromCourse(course.id, email))
+          )
+        );
+        setCourses(getCourses(user.email));
+        setSelectedOverallStudents([]);
+        setIsOverallStudentActionsOpen(false);
+      } catch (error) {
+        alert("Failed to remove students from courses. Please try again.");
       }
     }
   };
@@ -363,7 +417,16 @@ const TeacherDashboard = () => {
     }
 
     try {
-      await enrollStudentsToCourses(emails, selectedCourses);
+      const enrolledPromises = [];
+      for (const email of emails) {
+        for (const courseId of selectedCourses) {
+          const course = courses.find((c) => c.id === courseId);
+          if (!course.students.includes(email)) {
+            enrolledPromises.push(addStudentToCourse(courseId, email));
+          }
+        }
+      }
+      await Promise.all(enrolledPromises);
       setMultiEnrollEmails("");
       setSelectedCourses([]);
       setCourses(getCourses(user.email));
@@ -372,7 +435,6 @@ const TeacherDashboard = () => {
       setSelectedCourseAction("multienroll");
       setIsCourseActionsOpen(false);
     } catch (error) {
-      console.error("Enrollment error:", error);
       alert("Failed to enroll students. Please try again.");
     }
   };
@@ -554,6 +616,22 @@ const TeacherDashboard = () => {
     setIsStudentActionsOpen(false);
   };
 
+  const handleCopyAllOverallStudentEmails = () => {
+    const allEmails = getOverallCoursesStatus()
+      .filteredStudents.map((s) => s.email)
+      .join(", ");
+    navigator.clipboard.writeText(allEmails);
+    setIsOverallStudentActionsOpen(false);
+  };
+
+  const handleCopyAllOverallStudentNames = () => {
+    const allNames = getOverallCoursesStatus()
+      .filteredStudents.map((s) => `${s.firstName} ${s.lastName}`)
+      .join(", ");
+    navigator.clipboard.writeText(allNames);
+    setIsOverallStudentActionsOpen(false);
+  };
+
   const handlePasteCourseName = () => {
     if (copiedCourseName) setNewCourseName(copiedCourseName);
   };
@@ -658,6 +736,25 @@ const TeacherDashboard = () => {
     link.click();
     window.URL.revokeObjectURL(url);
     setIsExporting(false);
+  };
+
+  const handleExportOverallStudents = () => {
+    setIsExporting(true);
+    const csvContent = [
+      "First Name,Last Name,Email",
+      ...getOverallCoursesStatus().filteredStudents.map(
+        (student) => `${student.firstName},${student.lastName},${student.email}`
+      ),
+    ].join("\n");
+    const blob = new Blob([csvContent], { type: "text/csv" });
+    const url = window.URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = "overall_students_export.csv";
+    link.click();
+    window.URL.revokeObjectURL(url);
+    setIsExporting(false);
+    setIsOverallStudentActionsOpen(false);
   };
 
   const renderCourseActionsMenu = () => (
@@ -786,7 +883,56 @@ const TeacherDashboard = () => {
     </div>
   );
 
+  const renderOverallStudentActionsMenu = () => (
+    <div className="absolute right-0 mt-2 w-64 bg-[var(--primary-bg-end)] rounded-lg shadow-xl z-10 border border-[var(--accent)]">
+      {[
+        {
+          label: "Select All Students",
+          action: handleSelectAllOverallStudents,
+        },
+        {
+          label: "Copy All Emails",
+          action: handleCopyAllOverallStudentEmails,
+          disabled: getOverallCoursesStatus().filteredStudents.length === 0,
+        },
+        {
+          label: "Copy All Names",
+          action: handleCopyAllOverallStudentNames,
+          disabled: getOverallCoursesStatus().filteredStudents.length === 0,
+        },
+        {
+          label: "Remove Selected",
+          action: handleDeleteSelectedOverallStudents,
+          disabled: selectedOverallStudents.length === 0,
+        },
+        {
+          label: "Export Students",
+          action: handleExportOverallStudents,
+          disabled: getOverallCoursesStatus().filteredStudents.length === 0,
+        },
+      ].map((item, index) => (
+        <button
+          key={index}
+          onClick={item.action}
+          disabled={item.disabled}
+          className={`block w-full text-left px-4 py-3 text-sm text-[var(--text-secondary)] hover:bg-[var(--accent)] hover:text-[var(--text-primary)] transition-all duration-150 ${
+            item.disabled ? "opacity-50 cursor-not-allowed" : "opacity-100"
+          }`}
+        >
+          {item.label}
+        </button>
+      ))}
+    </div>
+  );
+
   const overallStatus = getOverallCoursesStatus();
+
+  const toggleStudentDetails = (studentEmail) => {
+    setExpandedStudentEmail(
+      expandedStudentEmail === studentEmail ? null : studentEmail
+    );
+    setSelectedStudent(null);
+  };
 
   if (!user) return null;
 
@@ -1104,7 +1250,6 @@ const TeacherDashboard = () => {
                         );
                         setIsEditProfileOpen(false);
                       } catch (error) {
-                        console.error("Failed to update profile:", error);
                         alert("Failed to update profile. Please try again.");
                       }
                     }}
@@ -1299,12 +1444,31 @@ const TeacherDashboard = () => {
                       <option value="asc">Sort Students A-Z</option>
                       <option value="desc">Sort Students Z-A</option>
                     </select>
+                    <div className="relative">
+                      <Button
+                        onClick={() =>
+                          setIsOverallStudentActionsOpen(
+                            !isOverallStudentActionsOpen
+                          )
+                        }
+                        className={`bg-[var(--accent)] hover:bg-cyan-500 text-white px-4 py-2 rounded-lg transition-all duration-200 ${
+                          isOverallStudentActionsOpen
+                            ? "bg-red-500 hover:bg-red-600"
+                            : ""
+                        }`}
+                      >
+                        {isOverallStudentActionsOpen ? "Cancel" : "Select"}
+                      </Button>
+                      {isOverallStudentActionsOpen &&
+                        renderOverallStudentActionsMenu()}
+                    </div>
                   </div>
                   {overallStatus.filteredStudents.length > 0 ? (
                     <div className="overflow-x-auto bg-[var(--primary-bg-start)] p-4 rounded-lg shadow-inner">
                       <table className="w-full text-left">
                         <thead>
                           <tr className="bg-[var(--primary-bg-start)]">
+                            <th className="p-3 w-12"></th>
                             <th className="p-3 text-[var(--text-primary)]">
                               Name
                             </th>
@@ -1323,8 +1487,24 @@ const TeacherDashboard = () => {
                           {overallStatus.filteredStudents.map((student) => (
                             <tr
                               key={student.email}
-                              className="border-b border-[var(--accent)] hover:bg-[var(--accent)]"
+                              className={`border-b border-[var(--accent)] hover:bg-[var(--accent)] ${
+                                selectedOverallStudents.includes(student.email)
+                                  ? "bg-[var(--accent)] text-[var(--text-primary)]"
+                                  : "text-[var(--text-secondary)]"
+                              }`}
                             >
+                              <td className="p-3">
+                                <input
+                                  type="checkbox"
+                                  checked={selectedOverallStudents.includes(
+                                    student.email
+                                  )}
+                                  onChange={() =>
+                                    toggleOverallStudentSelection(student.email)
+                                  }
+                                  className="w-5 h-5 accent-[var(--accent)]"
+                                />
+                              </td>
                               <td className="p-3 text-[var(--text-primary)]">
                                 <Link
                                   to={`/student/${student.email}`}
@@ -1676,6 +1856,7 @@ const TeacherDashboard = () => {
                       )}
                     </p>
                   )}
+
                   {courseStudents.length > 0 ? (
                     <>
                       <div className="flex items-center gap-4">
@@ -1755,9 +1936,11 @@ const TeacherDashboard = () => {
                                     0 && (
                                     <button
                                       onClick={() =>
-                                        navigate("/deleted-students-list")
+                                        navigate(
+                                          `/admin/student/${student.email}/courses`
+                                        )
                                       }
-                                      className="ml-2 text-[var(--accent)] hover:underline text-sm"
+                                      className="ml-2 text-blue-500 hover:underline text-sm"
                                     >
                                       ({getStudentCourses(student.email).length}{" "}
                                       courses)

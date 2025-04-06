@@ -73,6 +73,12 @@ const StudentDashboard = () => {
     }
   }, [user, navigate, getProgressData, getStreak, getGoals, mockCourses]);
 
+  useEffect(() => {
+    setShowCourses(false);
+    setShowGoals(false);
+    setShowProgress(false);
+  }, []);
+
   const handleAddGoal = () => {
     if (newGoal.content.trim() && newGoal.date) {
       const goalData = {
