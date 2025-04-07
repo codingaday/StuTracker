@@ -15,6 +15,7 @@ import {
   FiCopy,
   FiClipboard,
   FiEdit,
+  FiFile,
   FiCheck,
   FiSearch,
   FiDownload,
