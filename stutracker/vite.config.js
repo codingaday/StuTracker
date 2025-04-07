@@ -7,5 +7,4 @@ export default defineConfig({
   build: {
     chunkSizeWarningLimit: 1600,
   },
-  base: "/StuTracker",
 });
